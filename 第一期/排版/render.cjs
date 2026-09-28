@@ -6,7 +6,7 @@ function loadPlaywright() {
   for (const name of candidates) {
     try { return require(name); } catch (e) { /* 试下一个 */ }
   }
-  throw new Error('找不到 Playwright：请先在 排版/ 目录运行 npm install');
+  throw new Error('找不到 Playwright：请先在 第一期/排版/ 目录运行 npm install');
 }
 
 (async () => {

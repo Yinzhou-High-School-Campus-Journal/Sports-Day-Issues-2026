@@ -92,7 +92,7 @@
 需要 Python 3（`pip install pymupdf pillow fonttools`）和 Node.js。
 
 ```bash
-cd 排版
+cd 第一期/排版
 npm install                      # 安装 Playwright
 npx playwright install chromium  # 首次使用时下载 Chromium
 python3 fonts.py                 # 下载并生成思源宋体、Noto Serif 静态字重

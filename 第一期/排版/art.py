@@ -325,7 +325,7 @@ def track(w: float, h: float, seed: int = 4, horizon: float = 0.3, lanes: int = 
 
 # ---------------------------------------------------------------- 封面线稿复用
 
-COVER = HERE.parent / "资产" / "第一期封面.pdf"
+COVER = HERE.parents[1] / "资产" / "第一期封面.pdf"
 
 
 def _hex(c) -> str:

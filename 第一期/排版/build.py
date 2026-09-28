@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """《云图试骏》排版：Markdown 稿件 → HTML → PDF。
 
-用法：python3 排版/build.py [第一期]
+用法：python3 第一期/排版/build.py [第一期]
 
 流程：
 1. 读取期刊目录下的稿件（卷首语、开幕式致辞、各板块导读与文章），生成 HTML；
@@ -28,7 +28,7 @@ from PIL import Image, ImageFilter, ImageOps
 import art
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parent
+ROOT = HERE.parents[1]
 IMG_DIR = HERE / "images"
 
 PT_PER_MM = 72 / 25.4
@@ -589,7 +589,7 @@ def finalize(issue: str, pdf_path: Path) -> Path:
         "title": f"{cfg['journal']} {issue} 内页",
         "author": "鄞州中学媒体部",
         "subject": "鄞州中学第四十四届暨鄞州蓝青高级中学第二十九届运动会校刊",
-        "creator": "排版/build.py（HTML → Chromium）",
+        "creator": "第一期/排版/build.py（HTML → Chromium）",
         "producer": doc.metadata.get("producer", ""),
     })
     doc.save(pdf_path.with_suffix(".tmp.pdf"), garbage=3, deflate=True)
