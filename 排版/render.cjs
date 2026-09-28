@@ -42,7 +42,14 @@ function loadPlaywright() {
       while (!over && (n = tw.nextNode())) {
         const rg = document.createRange();
         rg.selectNodeContents(n);
-        over = [...rg.getClientRects()].some((rc) => rc.right > right + 0.5);
+        if (![...rg.getClientRects()].some((rc) => rc.right > right + 0.5)) continue;
+        // 有一行伸出去了：逐字看，行尾悬挂的空格不算
+        for (let i = 0; i < n.length && !over; i++) {
+          if (/\s|　/.test(n.data[i])) continue;
+          rg.setStart(n, i);
+          rg.setEnd(n, i + 1);
+          over = rg.getBoundingClientRect().right > right + 0.5;
+        }
       }
       if (over) {
         el.style.textSpacingTrim = 'space-all';

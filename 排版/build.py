@@ -118,6 +118,9 @@ ISSUES = {
         "journal": "云图试骏",
         "front": [],                    # 这期不放卷首语、致辞
         "sections": ["01_赴新征", "02_竞风华", "03_笃前行", "04_逐韶光"],
+        # 印出来的板块名（四字，不与第一期重复）；稿件目录名沿用 print 分支
+        "section_names": {"01_赴新征": "红砖絮语", "02_竞风华": "赛道秋声",
+                          "03_笃前行": "青衿问道", "04_逐韶光": "古韵新声"},
         "cover": ["资产/第二期封面.pdf", "资产/第二期扉页.pdf"],
         "staff": "00_前置/01_人员表.md",  # 排在目录页页底（全刊开头）
         "toc_class": True,              # 目录标班级
@@ -447,7 +450,7 @@ def wide_figure(piece: Piece, imgs: list[Block], extra_lines: int = 0) -> str:
 
 
 def render_piece(piece: Piece, fills: dict[str, dict[int, int]],
-                 pads: dict[str, dict[int, int]] | None = None) -> str:
+                 pads: dict[str, dict[int, int]] | None = None, tops: dict[str, int] | None = None) -> str:
     if piece.kind == "opener":
         classes = ["piece", "opener", "single"]
     elif piece.kind == "front":
@@ -484,7 +487,10 @@ def render_piece(piece: Piece, fills: dict[str, dict[int, int]],
     for i, s in enumerate(specs):
         if s.get("where", "end") == "end" and not s.get("grow") and i in sized:
             extra += fill_figure(piece, s, sized[i], i, padded.get(i, 0))
-    return (f'<article class="{" ".join(classes)}" id="{piece.pid}">\n'
+    # 起始页：整组内容上下居中，上方补的空白取整行，不离开网格
+    top = (tops or {}).get(piece.pid, 0)
+    style = f' style="padding-top:{top * LH:.3f}pt"' if top else ""
+    return (f'<article class="{" ".join(classes)}" id="{piece.pid}"{style}>\n'
             f'<header class="head">{"".join(head)}</header>\n{head_figs}'
             f'<div class="body">\n{body}\n</div>\n{extra}</article>')
 
@@ -520,9 +526,9 @@ def render_toc(front: list[Piece], groups: list[tuple[str, list[Piece]]], pages:
             f'<div class="list">\n{"".join(parts)}\n</div>\n{tail}</section>')
 
 
-def sec_name(folder: str) -> str:
-    """板块目录名去掉序号前缀：01_赴新征 → 赴新征。"""
-    return re.sub(r"^\d+_", "", folder)
+def sec_name(folder: str, cfg: dict | None = None) -> str:
+    """印出来的板块名：配置里另起了名字就用它，否则是目录名去掉序号前缀（01_赴新征 → 赴新征）。"""
+    return (cfg or {}).get("section_names", {}).get(folder) or re.sub(r"^\d+_", "", folder)
 
 
 def num_prefix(path: Path) -> int:
@@ -541,11 +547,11 @@ def load_issue(issue: str) -> tuple[list[Piece], list[tuple[str, list[Piece]]]]:
         files = sorted((base / sec).glob("*.md"), key=num_prefix)
         items = [parse_piece(f) for f in files]
         for it in items:
-            it.section = sec_name(sec)
+            it.section = sec_name(sec, cfg)
             it.page = f"sec{k}"
             if num_prefix(it.path) == 0:
                 it.kind = "opener"
-        groups.append((sec_name(sec), items))
+        groups.append((sec_name(sec, cfg), items))
     for n, p in enumerate(front + [x for _, items in groups for x in items], 1):
         p.pid = f"p{n:02d}"
         p.key = p.path.relative_to(base).as_posix()
@@ -561,7 +567,7 @@ def section_pages_css(cfg: dict) -> str:
     """每个板块一种命名页，页眉是板块名（字间加全角空格）。"""
     out = []
     for k, sec in enumerate(cfg["sections"], 1):
-        label = "　".join(sec_name(sec))
+        label = "　".join(sec_name(sec, cfg))
         out.append(f'@page sec{k} {{ @top-center {{ content: "{label}"; font-family: "YZ FangSong", "YZ Song", serif; '
                    f'font-weight: 500; font-size: 9pt; vertical-align: bottom; padding-bottom: 8mm; }} }}\n'
                    f'.sec{k} {{ page: sec{k}; }}')
@@ -569,23 +575,45 @@ def section_pages_css(cfg: dict) -> str:
 
 
 def build_html(issue: str, pages: dict[str, int], fills: dict[str, dict[int, int]],
-               pads: dict[str, dict[int, int]] | None = None) -> str:
+               pads: dict[str, dict[int, int]] | None = None, tops: dict[str, int] | None = None) -> str:
+    """pages 为各篇印出来的页码（目录不计页数，目录之后的第一页是第 1 页）。"""
     cfg = ISSUES[issue]
     front, groups = load_issue(issue)
-    body = [render_piece(p, fills, pads) for p in front]
-    tail = ""
-    if cfg.get("staff") and "toc" in fills:
-        pad = (pads or {}).get("toc", {}).get(0, 0)
-        tail = staff_block(parse_staff(ROOT / issue / cfg["staff"]), fills["toc"][0],
-                           f"margin-top:{(1 + pad) * LH:.3f}pt;")
-    body.append(render_toc(front, groups, pages, cfg.get("toc_class", False), tail))
+    body = [render_piece(p, fills, pads, tops) for p in front]
+    body.append(render_toc(front, groups, pages, cfg.get("toc_class", False)))
     for _, items in groups:
-        body.extend(render_piece(p, fills, pads) for p in items)
+        body.extend(render_piece(p, fills, pads, tops) for p in items)
     return ("<!doctype html>\n<html lang=\"zh-Hans\">\n<head>\n<meta charset=\"utf-8\">\n"
             f"<title>{cfg['journal']} {issue}</title>\n"
             '<link rel="stylesheet" href="style.css">\n'
             f"<style>\n{section_pages_css(cfg)}\n</style>\n</head>\n<body>\n"
             + "\n\n".join(body) + "\n</body>\n</html>\n")
+
+
+def staff_page(issue: str) -> Path | None:
+    """人员表单独成页，印在扉页背面。仿 V5 竖式：窄窄一栏，每行至多两个姓名，转行与首个姓名对齐；
+    职务撑成同宽，冒号、姓名上下对齐；整块在版心里上下左右居中，上方空白取整行，基线落在行线上。"""
+    cfg = ISSUES[issue]
+    if not cfg.get("staff"):
+        return None
+    entries = parse_staff(ROOT / issue / cfg["staff"])
+    label = max(len(r) for r, _ in entries)
+    rows = sum(math.ceil(len(ns) / 2) for _, ns in entries)
+    pad = (LINES - rows) // 2 * LH
+    items = "".join(
+        f'<div class="e"><dt><span class="r">{html.escape(r)}</span>：</dt><dd>'
+        + "　".join(f'<span class="n">{html.escape(n)}</span>' for n in ns) + "</dd></div>"
+        for r, ns in entries)
+    page = ("<!doctype html>\n<html lang=\"zh-Hans\">\n<head>\n<meta charset=\"utf-8\">\n"
+            f"<title>{cfg['journal']} {issue} 工作人员</title>\n"
+            '<link rel="stylesheet" href="style.css">\n</head>\n<body>\n'
+            f'<section class="staff staff-page" style="padding-top:{pad:.3f}pt;--staff-label:{label}em">'
+            f'<dl>{items}</dl></section>\n</body>\n</html>\n')
+    html_path = HERE / f"{issue}人员表.html"
+    pdf_path = HERE / f"{issue}人员表（扉页背面）.pdf"
+    html_path.write_text(page, encoding="utf-8")
+    render_pdf(html_path, pdf_path)
+    return pdf_path
 
 
 # ---------------------------------------------------------------- 输出与分析
@@ -639,7 +667,20 @@ def free_lines(pdf_path: Path, spans: dict[str, tuple[int, int]]) -> dict[str, i
     return out
 
 
-def finalize(issue: str, pdf_path: Path) -> Path:
+def page_labels(toc: tuple[int, int], offset: int = 0) -> list[dict]:
+    """PDF 页码标签，与印出来的页码一致：封面、扉页、人员表、目录这些前置页用罗马数字 i、ii……，
+    目录之后从 1 起（目录前若还有正文页，照常计数）。toc 为内页里目录的起止页（从 1 数）；offset 为拼在前面的页数。
+    （标签前缀若写中文，PyMuPDF 存成不带 BOM 的 UTF-8，有的阅读器会显示乱码，所以不用。）"""
+    if toc[0] > 1:
+        return [{"startpage": 0, "style": "r", "firstpagenum": 1},
+                {"startpage": offset, "style": "D", "firstpagenum": 1},
+                {"startpage": offset + toc[0] - 1, "style": "r", "firstpagenum": offset + 1},
+                {"startpage": offset + toc[1], "style": "D", "firstpagenum": toc[0]}]
+    return [{"startpage": 0, "style": "r", "firstpagenum": 1},
+            {"startpage": offset + toc[1], "style": "D", "firstpagenum": 1}]
+
+
+def finalize(issue: str, pdf_path: Path, toc: tuple[int, int], staff_pdf: Path | None = None) -> Path:
     cfg = ISSUES[issue]
     doc = pymupdf.open(pdf_path)
     doc.set_metadata({
@@ -649,6 +690,7 @@ def finalize(issue: str, pdf_path: Path) -> Path:
         "creator": "排版/build.py（HTML → Chromium）",
         "producer": doc.metadata.get("producer", ""),
     })
+    doc.set_page_labels(page_labels(toc))
     doc.save(pdf_path.with_suffix(".tmp.pdf"), garbage=3, deflate=True)
     doc.close()
     pdf_path.with_suffix(".tmp.pdf").replace(pdf_path)
@@ -663,10 +705,15 @@ def finalize(issue: str, pdf_path: Path) -> Path:
             with pymupdf.open(cp) as cd:
                 out.insert_pdf(cd)
                 offset += cd.page_count
+    if staff_pdf and staff_pdf.exists():                  # 扉页背面：人员表
+        with pymupdf.open(staff_pdf) as sd:
+            out.insert_pdf(sd)
+            offset += sd.page_count
     with pymupdf.open(pdf_path) as inner:
-        toc = inner.get_toc(simple=False)
+        outline = inner.get_toc(simple=False)
         out.insert_pdf(inner)
-    out.set_toc([[t[0], t[1], t[2] + offset] for t in toc])
+    out.set_toc([[t[0], t[1], t[2] + offset] for t in outline])
+    out.set_page_labels(page_labels(toc, offset))
     out.set_metadata({"title": f"{cfg['journal']} {issue}（含封面预览）", "author": "鄞州中学媒体部"})
     out.save(preview, garbage=3, deflate=True)
     return preview
@@ -684,35 +731,26 @@ def main() -> None:
     html_path = HERE / f"{issue}.html"
     pdf_path = HERE / f"{issue}内页.pdf"
     pieces = {p.pid: p for p in all_pieces(issue)}
-    staff_need = staff_split(parse_staff(ROOT / issue / cfg["staff"]))[1] if cfg.get("staff") else 0
 
-    pages: dict[str, int] = {}
+    phys: dict[str, int] = {}                  # 各篇起始页（PDF 里的第几页）
+    pages: dict[str, int] = {}                 # 印出来的页码：目录不计页数
     fills: dict[str, dict[int, int]] = {}      # pid → {配图序号: 行数}
     pads: dict[str, dict[int, int]] = {}       # pid → {配图序号: 图上方多空的行数}（anchor: bottom）
+    tops: dict[str, int] = {}                  # 起始页：整组内容上方补的空行，让内容上下居中
     base_len: dict[str, int] = {}              # 加文末配图前每篇的页数
     for rnd in range(1, 9):
-        html_path.write_text(build_html(issue, pages, fills, pads), encoding="utf-8")
+        html_path.write_text(build_html(issue, pages, fills, pads, tops), encoding="utf-8")
         render_pdf(html_path, pdf_path)
         starts, spans = piece_pages(pdf_path, issue)
         free = free_lines(pdf_path, spans)
-        changed = starts != pages
-        pages = starts
-        # 人员表：沉到目录页页底；目录页放不下就提示
-        if staff_need:
-            toc_len = spans["toc"][1] - spans["toc"][0]
-            if "toc" not in fills:
-                if free["toc"] >= staff_need + 1:
-                    base_len["toc"] = toc_len
-                    fills["toc"] = {0: staff_need}
-                    pads["toc"] = {0: free["toc"] - 1 - staff_need}
-                    changed = True
-                else:
-                    print(f"  目录页只剩 {free['toc']} 行，放不下人员表（要 {staff_need + 1} 行）")
-            elif toc_len > base_len["toc"]:
-                if pads["toc"][0]:
-                    pads["toc"][0] -= 1
-                else:
-                    del fills["toc"]
+        changed = starts != phys
+        phys = starts
+        toc_n = spans["toc"][1] - spans["toc"][0] + 1
+        pages = {pid: (n - toc_n if n > spans["toc"][1] else n) for pid, n in starts.items()}
+        # 没有配图的起始页：文字整组上下居中
+        for pid, piece in pieces.items():
+            if piece.kind == "opener" and not FILLS.get(piece.key) and pid not in tops and free[pid] > 1:
+                tops[pid] = free[pid] // 2
                 changed = True
         for pid, piece in pieces.items():
             specs = FILLS.get(piece.key, [])
@@ -731,12 +769,17 @@ def main() -> None:
                         want = free[pid] - (0 if s.get("grow") else 1)
                         n = min(want, s.get("max", LINES))
                         fills.setdefault(pid, {})[i] = n
-                        if s.get("anchor") == "bottom" and want > n:
+                        if piece.kind == "opener" and want > n:
+                            # 起始页：图紧跟导读，多出的空白一半放在整组上方，上下对称
+                            tops[pid] = (want - n) // 2
+                        elif s.get("anchor") == "bottom" and want > n:
                             pads.setdefault(pid, {})[i] = want - n
                         changed = True
                 elif length > base_len.get(pid, length):
-                    # 挤出新页：先减沉底的空行，再缩图，一次一行重排
-                    if pads.get(pid, {}).get(i):
+                    # 挤出新页：先减上方、沉底的空行，再缩图，一次一行重排
+                    if tops.get(pid):
+                        tops[pid] -= 1
+                    elif pads.get(pid, {}).get(i):
                         pads[pid][i] -= 1
                     else:
                         fills[pid][i] = cur - 1
@@ -748,13 +791,12 @@ def main() -> None:
     report = []
     for pid, (a, b) in spans.items():
         title = "目录" if pid == "toc" else pieces[pid].title
-        report.append({"pid": pid, "title": title, "pages": [a, b], "free_lines": free[pid],
-                       "fills": fills.get(pid, {})})
-    if staff_need and "toc" not in fills:
-        print("  注意：人员表没有排进去")
+        report.append({"pid": pid, "title": title, "pages": [a, b], "page_no": pages.get(pid),
+                       "free_lines": free[pid], "fills": fills.get(pid, {})})
     (HERE / f"{issue}版面.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
     total = pymupdf.open(pdf_path).page_count
-    preview = finalize(issue, pdf_path)
+    staff_pdf = staff_page(issue)
+    preview = finalize(issue, pdf_path, spans["toc"], staff_pdf)
     print(f"完成：{pdf_path.name}（{total} 页），预览：{preview.name}")
     for r in report:
         flag = "  ← 留白多" if r["free_lines"] >= 9 else ""

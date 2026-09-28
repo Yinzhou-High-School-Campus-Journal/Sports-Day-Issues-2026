@@ -186,6 +186,9 @@ img { display: block; }
 .piece:first-child { break-before: auto; }
 .front { page: front; }
 .opener { page: opener; }
+/* 目录页不印页码、不计页数：页码从目录之后的第一页起算 */
+@page toc { counter-increment: page 0; @bottom-center { content: none; } }
+.toc { page: toc; }
 
 /* 标题区（跨两栏） */
 .head { text-align: center; }
@@ -345,6 +348,12 @@ i { font-style: italic; line-height: 1; }
   text-align-last: justify;
 }
 .staff .n { white-space: nowrap; }
+/* 人员表页（扉页背面）：仿 V5 竖式——窄窄一栏，每行至多两个姓名（姓名栏 7 字宽），
+   字体、字号、行距同上；不印页码 */
+@page plain { @bottom-center { content: none; } }
+.staff-page { page: plain; }
+.staff-page dl { flex: none; width: fit-content; margin: 0 auto; }
+.staff-page .e { grid-template-columns: max-content 7em; }
 
 /* ---------- 目录 ---------- */
 
