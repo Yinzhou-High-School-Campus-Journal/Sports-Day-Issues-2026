@@ -2,3 +2,4 @@
 __pycache__/
 排版/node_modules/
 排版/*.tmp.pdf
+排版/fonts/gen/

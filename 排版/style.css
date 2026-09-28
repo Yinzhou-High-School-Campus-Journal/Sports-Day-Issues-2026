@@ -128,7 +128,7 @@
   --lh: 17.35pt;     /* 行距 = 1 行 */
   --gap: 21pt;       /* 栏间距、首行缩进 */
   --song: "YZ Latin", "YZ Song", serif;
-  --fang: "YZ Latin", "YZ FangSong", "YZ Song", serif;
+  --fang: "YZ Latin", "YZ FangSong Supp", "YZ FangSong", "YZ Song", serif;   /* Supp：仿宋缺字的补字，build.py 生成 */
   --western: "YZ Western", "YZ Song", serif;          /* 成段西文、独立西文 */
 }
 
@@ -145,8 +145,8 @@
     padding-top: 7.5mm;
   }
 }
-/* 前置稿件、目录、板块起始页不设页眉。各板块的命名页（sec1、sec2……，页眉为板块名，
-   方正恒仿宋 9 pt）由 build.py 按期刊配置生成，写在 HTML 的 <style> 里 */
+/* 目录、人员表、板块起始页、卷尾语不设页眉。各板块的命名页（sec1、sec2……，方正恒仿宋 9 pt；
+   左页为本期名、右页为板块名）由 build.py 按期刊配置生成，写在 HTML 的 <style> 里 */
 @page front { }
 @page opener { }
 
@@ -186,7 +186,7 @@ img { display: block; }
 .piece:first-child { break-before: auto; }
 .front { page: front; }
 .opener { page: opener; }
-/* 目录页不印页码、不计页数：页码从目录之后的第一页起算 */
+/* 目录、人员表两页不印页码、不计页数：页码从其后的第一页（右页）起算 */
 @page toc { counter-increment: page 0; @bottom-center { content: none; } }
 .toc { page: toc; }
 
@@ -325,15 +325,13 @@ i { font-style: italic; line-height: 1; }
 .fill-head { margin: 0 0 var(--lh); }
 .fill img { width: 100%; }
 
-/* 人员表：首行正中一道细线，下面两栏与正文栏对齐，仿宋，行距同正文 */
-.staff-rule { height: var(--lh); position: relative; }
-.staff-rule::after {
-  content: ""; position: absolute; left: 0; right: 0; top: 50%;
-  border-top: 0.5pt solid #000;
-}
-.staff-cols { display: flex; gap: var(--gap); }
-.staff dl { flex: 1 1 0; margin: 0; }
-.staff .e { display: grid; grid-template-columns: max-content 1fr; }
+/* 人员表（目录后的左页）：仿 V5 竖式——窄窄一栏，每行至多两个姓名（姓名栏 --staff-names 宽），
+   方正恒仿宋，字号、行距同正文；整块居中，不印页码、不计页数 */
+@page plain { counter-increment: page 0; @bottom-center { content: none; } }
+.staff-page { page: plain; }
+.staff dl { width: fit-content; margin: 0 auto; }
+.staff .e { display: grid; grid-template-columns: max-content var(--staff-names); }
+.staff .thanks { margin-top: var(--lh); }       /* 特别致谢：隔一行 */
 .staff dt, .staff dd {
   margin: 0;
   font-family: var(--fang);
@@ -348,12 +346,6 @@ i { font-style: italic; line-height: 1; }
   text-align-last: justify;
 }
 .staff .n { white-space: nowrap; }
-/* 人员表页（扉页背面）：仿 V5 竖式——窄窄一栏，每行至多两个姓名（姓名栏 7 字宽），
-   字体、字号、行距同上；不印页码 */
-@page plain { @bottom-center { content: none; } }
-.staff-page { page: plain; }
-.staff-page dl { flex: none; width: fit-content; margin: 0 auto; }
-.staff-page .e { grid-template-columns: max-content 7em; }
 
 /* ---------- 目录 ---------- */
 
@@ -368,6 +360,7 @@ i { font-style: italic; line-height: 1; }
 }
 .toc .list > h2:first-child { margin-top: 0; }
 .toc ol { list-style: none; margin: 0; padding: 0; }
+.toc ol.back-list { margin-top: var(--lh); }      /* 卷尾语：各板块之后隔一行 */
 /* 每条一行网格：题目 | 班级号 | 姓名（至少三字宽，两字名撑开）| 页码；各列宽度逐行一致，上下对齐 */
 .toc li {
   display: grid;
