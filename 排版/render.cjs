@@ -16,7 +16,10 @@ function loadPlaywright() {
     process.exit(2);
   }
   const { chromium } = loadPlaywright();
-  const browser = await chromium.launch();
+  // Use a locally installed Chromium when Playwright's browser bundle is unavailable.
+  const browser = await chromium.launch({
+    executablePath: process.env.CHROMIUM_EXECUTABLE || chromium.executablePath(),
+  });
   const page = await browser.newPage();
   page.on('console', (msg) => console.log('[页面]', msg.text()));
   await page.goto('file://' + path.resolve(input), { waitUntil: 'load' });
