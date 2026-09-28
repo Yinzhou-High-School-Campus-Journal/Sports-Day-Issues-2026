@@ -6,4 +6,4 @@
 
 未进入 V5 第一期的稿件收在 `待选稿/`，不带旧方案的排序号；作者或班级仍未知的稿件保留在 `信息缺失/`。两个分支的稿件全集一致，`ShenZehou` 分支另保留原五板块第一期与对应排版。
 
-V5 PDF 仍需排版端回改的项目见 [V5 校样更正](V5校样更正.md)。
+V5 PDF 仍需排版端回改的项目保存在 `DuanJiarui` 分支的 [V5 校样更正](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/blob/DuanJiarui/V5校样更正.md)。
