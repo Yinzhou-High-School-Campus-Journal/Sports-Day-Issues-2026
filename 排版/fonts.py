@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""准备排版字体（输出到 排版/fonts/，该目录不进仓库）。
+"""准备排版字体（输出到已纳入仓库的 排版/fonts/）。
 
 Chromium 打印 PDF 时，CFF 轮廓的 OTF 和可变字体会被转成 Type 3 字体，
 印刷预检容易报错。这里把可变字体实例化成各字重的静态 TrueType：
@@ -7,7 +7,7 @@ Chromium 打印 PDF 时，CFF 轮廓的 OTF 和可变字体会被转成 Type 3 �
   思源宋体 SC ← Noto Serif SC 可变字体（与思源宋体同一套字形）：400 / 500 / 600 / 700
   Noto Serif  ← Noto Serif 可变字体：350 / 500 / 600 / 700、斜体 350（正文里夹排的西文、数字）
 
-以下商业字体需自行放进 fonts/（不进仓库）：
+以下商业字体已随项目收录在 fonts/：
   方正恒仿宋：FZHengFSJF-R.TTF、FZHengFSJF-M.TTF（缺少时退回开源的朱雀仿宋 ZhuqueFangsong-Regular.ttf）
   Constantia：CONSTAN.TTF、CONSTANB.TTF、CONSTANI.TTF、CONSTANZ.TTF（成段西文、页码等独立西文）
 """

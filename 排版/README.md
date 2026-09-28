@@ -14,7 +14,7 @@
 | `build.py` | 稿件 → HTML → PDF：回填目录页码，量出留白后按配置放插图 |
 | `art.py` | 线描插图生成器（沿用封面画风，按版面尺寸出 SVG） |
 | `render.cjs` | 调用 Chromium 输出 PDF |
-| `fonts.py` | 准备字体（输出到 `fonts/`，不进仓库） |
+| `fonts.py` | 从已收录的可变字体重新生成静态字重 |
 | `images/` | 灰度处理后的照片（`fill/` 为留白配图）和生成的线描（`art/`） |
 
 ## 版式
@@ -95,8 +95,8 @@
 cd 排版
 npm install                      # 安装 Playwright
 npx playwright install chromium  # 首次使用时下载 Chromium
-python3 fonts.py                 # 下载并生成思源宋体、Noto Serif 静态字重
+python3 fonts.py                 # 字体已收录；缺失时下载并生成静态字重
 python3 build.py 第一期
 ```
 
-商业字体需自行放进 `fonts/`：方正恒仿宋 `FZHengFSJF-R.TTF`、`FZHengFSJF-M.TTF`（缺少时退回开源的朱雀仿宋 `ZhuqueFangsong-Regular.ttf`），Constantia `CONSTAN.TTF`、`CONSTANB.TTF`、`CONSTANI.TTF`、`CONSTANZ.TTF`。
+所需字体均已收录在 [`fonts/`](fonts/README.md)：方正恒仿宋 `FZHengFSJF-R.TTF`、`FZHengFSJF-M.TTF`，Constantia `CONSTAN.TTF`、`CONSTANB.TTF`、`CONSTANI.TTF`、`CONSTANZ.TTF`，以及思源宋体字形和 Noto Serif 的可变字体与静态字重。开源字体的许可文本随目录提供；商业字体按项目维护者确认的再分发授权收录。

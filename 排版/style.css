@@ -9,7 +9,7 @@
    中文：思源宋体 SC，Regular / Medium / SemiBold / Bold
    作者、页眉、导读：方正恒仿宋；本机没有时退回朱雀仿宋
    思源宋体、Noto Serif 由 fonts.py 实例化成静态 TrueType（避免 PDF 里出现 Type 3 字体）；
-   Constantia、方正恒仿宋是商业字体，自行放进 fonts/。
+   Constantia、方正恒仿宋按项目授权收录在 fonts/。
    各字重按 font-weight 区间声明：正文写 font-weight: 350 时，
    中文落在 Regular（100–450），西文取 350 的实例。                         */
 
