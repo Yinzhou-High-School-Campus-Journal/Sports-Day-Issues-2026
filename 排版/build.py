@@ -40,6 +40,10 @@ CONTENT_BOTTOM = PAGE_H - 27.5 * PT_PER_MM
 CONTENT_W = (210 - 2 * 27.2) * PT_PER_MM
 GAP = 21.0
 COL_W = (CONTENT_W - GAP) / 2
+# 插图对齐网格：图占整数行，图片上下各内缩到汉字字面框（基线在行框内 12.75 pt，字面框 3.51–14.01 pt）
+IMG_INSET_TOP = 3.51
+IMG_INSET_BOTTOM = LH - 14.01
+IMG_TRIM = IMG_INSET_TOP + IMG_INSET_BOTTOM        # 6.85 pt = 行距 − 字号
 
 SECTIONS = {                    # 板块名 → 命名页（页眉）
     "校运风采": "xiaoyun",
@@ -55,6 +59,7 @@ ISSUES = {
         "front": ["卷首语.md", "开幕式致辞.md"],
         "sections": ["校运风采", "少年心语", "校园绘卷", "社会观察", "古韵风雅"],
         "cover": ["资产/第一期封面.pdf", "资产/第一期扉页.pdf"],
+        "staff": "人员表.md",           # 排在全刊最后一页的页底
     },
 }
 
@@ -73,32 +78,41 @@ ARTICLE_OPTIONS: dict[str, dict] = {
 #   art:   art.py 里的图样名，args 为参数；或 photo: 照片路径（相对仓库根目录），crop 裁切，pos 对齐
 #   grow:  True 表示放大文末原有的图组来填满，不另加图
 #   min:   剩余行数少于此值时不放（默认 9）
+#   max:   图最多占几行（视频截图按原比例取高，免得裁掉太多）；anchor: "bottom" 时多出的行留在图上方，图沉到页底
+#   staff: 不放图，改排人员表（值为稿件目录下的文件名，每行「职务：姓名　姓名」）
 FILLS: dict[str, list[dict]] = {
-    # 卷首语写亚运羽毛球女团夺冠、校园银杏
-    "卷首语.md": [{"art": "shuttle", "min": 5, "alt": "羽毛球拍与飞行的羽毛球，风中的银杏叶"}],
+    # 人员表放在全刊开头：卷首语页底
+    "卷首语.md": [{"staff": "人员表.md", "anchor": "bottom"}],
     "开幕式致辞.md": [{"photo": "资产/配图/2023运动会开幕式_航拍全景_鄞中电视台.jpg", "crop": (0, 0, 0.86, 1),
                        "pos": "50% 0%", "min": 5, "alt": "2023 年运动会开幕式航拍（鄞中电视台）"}],
-    "校运风采/0_导读.md": [{"art": "track", "args": {"seed": 41}, "min": 1, "alt": "伸向远方的跑道"}],
-    "校运风采/1_等一场风_2503_陈雨佳.md": [{"art": "startline", "alt": "黄昏的起跑线与旗杆上的绸旗"}],
+    # 原片右上角有水印、底边有摄像机入镜，都裁掉
+    "校运风采/0_导读.md": [{"photo": "资产/配图/2023运动会开幕式_跑道_鄞中电视台.jpg", "crop": (0, 0.1, 1, 0.835),
+                          "pos": "46% 50%", "min": 1, "max": 15, "anchor": "bottom",
+                          "alt": "2023 年运动会开幕式，举班牌走过跑道（鄞中电视台）"}],
+    "校运风采/1_等一场风_2503_陈雨佳.md": [{"art": "startline", "args": {"sun": False},
+                                          "alt": "起跑线与旗杆上被风吹起的绸旗"}],
     "校运风采/2_喧嚣未至，期待已至_2407_刘易.md": [{"art": "paper_doodle", "min": 7, "alt": "草稿纸角落里画下的小跑道"}],
     "校运风采/3_静待风起_2620_徐九安.md": [{"photo": "资产/配图/2023运动会开幕式_方阵_鄞中电视台.jpg",
                                            "crop": (0, 0.1, 1, 1), "pos": "50% 60%", "alt": "方阵走过跑道（鄞中电视台）"}],
     "校运风采/6_秋，运动，青春丰收_2503_陈思妤.md": [{"art": "ginkgo", "args": {"seed": 5}, "alt": "飘落的银杏叶"}],
     "校运风采/8_日光_2516_王子琼.md": [{"art": "book_leaf", "min": 7, "alt": "单词书里夹着的银杏叶"}],
-    "校运风采/9_一圈_2403_江钡薏.md": [{"art": "oval_track", "alt": "一圈跑道"}],
-    "少年心语/0_导读.md": [{"art": "mountains", "args": {"mist": True, "birds_n": 2, "horizon": 0.3, "seed": 7},
-                          "min": 1, "alt": "雾中群山"}],
+    "校运风采/9_一圈_2403_江钡薏.md": [{"art": "oval_track", "args": {"sun": False}, "alt": "一圈跑道"}],
+    "少年心语/0_导读.md": [{"photo": "资产/配图/2019校园_仰望树梢_鄞中电视台.jpg", "min": 1, "max": 17,
+                          "anchor": "bottom", "alt": "从树下仰望天空（鄞中电视台）"}],
     "少年心语/1_山顶的云海日出_2610_董排彤.md": [
-        {"where": "head", "lines": 13, "art": "cloudsea", "args": {"seed": 3}, "alt": "云海日出"},
-        {"art": "mountains", "args": {"sun": True, "path": True}, "alt": "晨光里的下山路"}],
-    "少年心语/2_雏鸟_2512_张子童.md": [{"art": "tower", "args": {"birds_n": 7, "wall": True}, "alt": "钟楼、红墙与雏鸟"}],
+        {"where": "head", "lines": 20, "art": "cloudsea", "args": {"seed": 3}, "alt": "云海日出"},
+        {"art": "ink_ridges", "alt": "云下的山脊，像用墨随意勾了几笔"}],
+    # 航拍原片左上角有水印，裁掉
+    "少年心语/2_雏鸟_2512_张子童.md": [{"photo": "资产/配图/校园航拍_钟楼_半岛第一飞手.jpg", "crop": (0.23, 0.02, 1, 0.55),
+                                     "pos": "50% 0%", "anchor": "bottom", "alt": "钟楼（B 站用户半岛第一飞手航拍）"}],
     "少年心语/3_凌汐_2509_张瑜璐.md": [{"art": "seawaves", "args": {"birds": 3}, "alt": "海上落日"}],
-    "校园绘卷/0_导读.md": [{"art": "tower", "args": {"campus": True, "leaves": 7, "seed": 11}, "min": 1,
-                          "alt": "钟楼、教学楼与银杏叶"}],
+    "校园绘卷/0_导读.md": [{"photo": "资产/配图/校园航拍_钟楼与长廊_半岛第一飞手.jpg", "crop": (0.23, 0.09, 1, 1),
+                          "min": 1, "max": 17, "anchor": "bottom", "alt": "钟楼与红砖长廊（B 站用户半岛第一飞手航拍）"}],
     "校园绘卷/2_我们的「纸老虎」政治老师_2517_傅欣妍.md": [{"art": "origami_tiger", "alt": "折纸老虎"}],
-    "校园绘卷/4_光影_2615_王莘乔.md": [{"art": "tower", "args": {"sun": True, "cat": True, "night": True},
-                                      "alt": "黄昏的钟楼与草地上的猫"}],
-    "社会观察/0_导读.md": [{"art": "window_view", "min": 1, "alt": "推开的窗"}],
+    "校园绘卷/4_光影_2615_王莘乔.md": [{"photo": "资产/配图/2019校园_红砖拱廊_鄞中电视台.jpg", "max": 17, "anchor": "bottom",
+                                      "alt": "红砖拱廊下的光与影（鄞中电视台）"}],
+    "社会观察/0_导读.md": [{"photo": "资产/配图/2019校园_窗外_鄞中电视台.jpg", "pos": "80% 50%", "min": 1, "max": 17,
+                          "anchor": "bottom", "alt": "窗外（鄞中电视台）"}],
     "社会观察/2_飞鸟与透明的墙_2509_梁琼文.md": [
         {"where": "head", "lines": 12, "art": "glass_bird", "alt": "玻璃采光室里的飞鸟"},
         {"art": "feather", "alt": "一片落羽"}],
@@ -107,8 +121,7 @@ FILLS: dict[str, list[dict]] = {
     "古韵风雅/0_导读.md": [{"art": "moon_lake", "args": {"snow": True}, "min": 1, "alt": "湖心亭看雪"}],
     "古韵风雅/1_秋夜有感_2601_清兰居士.md": [{"art": "moon_bamboo", "alt": "明月、竹与雁"}],
     "古韵风雅/2_游天妃湖赏月有感_2614_康茵子.md": [{"grow": True, "min": 3}],
-    "古韵风雅/6_风乎舞雩_2412_毛奕琳.md": [{"art": "mountains", "args": {"sun": True, "seed": 13, "horizon": 0.3},
-                                            "min": 7, "alt": "泰山日出"}],
+    "古韵风雅/6_风乎舞雩_2412_毛奕琳.md": [{"art": "willow", "min": 7, "alt": "风里的垂柳"}],
     "古韵风雅/8_把十八岁的信，寄给两千岁的少年_2605_邢敏谦.md": [{"art": "letter", "min": 7, "alt": "信笺、信封与毛笔"}],
     "古韵风雅/7_无用之用_2612_张鸣桐.md": [
         {"where": "head", "lines": 12, "art": "old_tree", "alt": "荒径旁的老槐"},
@@ -224,7 +237,9 @@ CLOSE_PUNCT = "」』）》〉】〕"
 
 
 def inline(s: str) -> str:
-    return html.escape(s, quote=False)
+    """转义 HTML；*西文书名* 转成斜体（西文书名不用书名号）。"""
+    out = html.escape(s, quote=False)
+    return re.sub(r"\*([^*\n]+)\*", r'<i lang="en">\1</i>', out)
 
 
 def centered(s: str) -> str:
@@ -279,13 +294,61 @@ def rel(p: Path) -> str:
     return p.relative_to(HERE).as_posix()
 
 
-def fill_figure(piece: Piece, spec: dict, lines: int, idx: int) -> str:
-    """生成一幅通栏插图的 HTML；线描按实际尺寸出 SVG，照片裁成灰度。"""
+def parse_staff(path: Path) -> list[tuple[str, list[str]]]:
+    """人员表：每行「职务：姓名　姓名……」。"""
+    out = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if "：" in line and not line.startswith("#"):
+            role, names = line.split("：", 1)
+            out.append((role.strip(), names.split()))
+    return out
+
+
+def staff_split(entries: list[tuple[str, list[str]]]) -> tuple[int, int]:
+    """人员表分两栏：返回（左栏项数，整块行数 = 细线 1 行 + 较长一栏的行数）。
+    每栏 20 字；职务一律撑到最长职务的字数，加冒号后剩下的字数排姓名，姓名不拆开。"""
+    room = 20 - (max(len(r) for r, _ in entries) + 1)
+
+    def n_lines(names):
+        lines, cur = 1, 0
+        for n in names:
+            need = len(n) + (1 if cur else 0)
+            if cur + need > room:
+                lines, cur = lines + 1, len(n)
+            else:
+                cur += need
+        return lines
+    sizes = [n_lines(ns) for _, ns in entries]
+    k = min(range(1, len(entries)), key=lambda i: (max(sum(sizes[:i]), sum(sizes[i:])), -i))
+    return k, 1 + max(sum(sizes[:k]), sum(sizes[k:]))
+
+
+def staff_block(entries: list[tuple[str, list[str]]], lines: int, top: str) -> str:
+    """人员表：一道细线，下面两栏与正文栏对齐。职务两端撑满同一宽度，冒号、姓名上下对齐，
+    姓名落在整字格上；转行时与首个姓名对齐。"""
+    k, _ = staff_split(entries)
+    label = max(len(r) for r, _ in entries)
+
+    def col(items):
+        return "<dl>" + "".join(
+            f'<div class="e"><dt><span class="r">{html.escape(r)}</span>：</dt><dd>'
+            + "　".join(f'<span class="n">{html.escape(n)}</span>' for n in ns) + "</dd></div>"
+            for r, ns in items) + "</dl>"
+    return (f'<section class="fill staff" style="{top}height:{lines * LH:.3f}pt;--staff-label:{label}em" '
+            f'aria-label="人员表"><div class="staff-rule"></div>'
+            f'<div class="staff-cols">{col(entries[:k])}{col(entries[k:])}</div></section>')
+
+
+def fill_figure(piece: Piece, spec: dict, lines: int, idx: int, pad: int = 0) -> str:
+    """生成一幅通栏插图的 HTML；线描按实际尺寸出 SVG，照片裁成灰度。pad：图上方再空几行（沉底用）。"""
     hgt = lines * LH
     where = spec.get("where", "end")
     cls = "fill fill-head" if where == "head" else "fill"
+    top = f"margin-top:{(1 + pad) * LH:.3f}pt;" if pad else ""
+    if "staff" in spec:
+        return staff_block(parse_staff(piece.path.parent / spec["staff"]), lines, top)
     if "art" in spec:
-        svg = art.make(spec["art"], CONTENT_W, hgt, **spec.get("args", {}))
+        svg = art.make(spec["art"], CONTENT_W, hgt - IMG_TRIM, **spec.get("args", {}))
         out = IMG_DIR / "art" / f"{piece.key.replace('/', '_')[:-3]}-{where}{idx}.svg"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(svg, encoding="utf-8")
@@ -296,7 +359,7 @@ def fill_figure(piece: Piece, spec: dict, lines: int, idx: int) -> str:
                                   mix=spec.get("mix"))
         alt = spec.get("alt", "照片")
     pos = spec.get("pos", "50% 50%")
-    return (f'<figure class="{cls}" style="height:{hgt:.3f}pt">'
+    return (f'<figure class="{cls}" style="{top}height:{hgt:.3f}pt">'
             f'<img src="{rel(src)}" alt="{html.escape(alt)}" style="object-position:{pos}"></figure>')
 
 
@@ -321,9 +384,10 @@ def render_blocks(piece: Piece) -> str:
             inner = []
             for l in b.lines:
                 if l.startswith("——"):
-                    inner.append(f'<p class="src">{inline(l)}</p>')
+                    # 中文破折号留在中文里，其后的西文出处标成英文
+                    inner.append(f'<p class="src">——<span class="w" lang="en">{inline(l[2:])}</span></p>')
                 else:
-                    inner.append(f'<span class="l">{inline(l.rstrip())}</span>')
+                    inner.append(f'<span class="l"><span class="w" lang="en">{inline(l.rstrip())}</span></span>')
             out.append("<blockquote>" + "".join(inner) + "</blockquote>")
         elif b.kind == "verse":
             st = "".join(
@@ -335,8 +399,8 @@ def render_blocks(piece: Piece) -> str:
             path, w, h = process_image(asset_path(piece, b.src))
             n = max(4, round(COL_W * h / w / LH))
             n = min(n, opts.get("max_img_lines", 99))
-            out.append(f'<figure class="fig"><img src="{rel(path)}" alt="{html.escape(b.alt)}" '
-                       f'style="height:{n * LH:.3f}pt"></figure>')
+            out.append(f'<figure class="fig" style="height:{n * LH:.3f}pt">'
+                       f'<img src="{rel(path)}" alt="{html.escape(b.alt)}"></figure>')
     return "\n".join(out)
 
 
@@ -363,14 +427,15 @@ def wide_figure(piece: Piece, imgs: list[Block], extra_lines: int = 0) -> str:
     total_aspect = sum(a for _, a, _ in items)
     n = max(4, round(usable / total_aspect / LH)) + extra_lines
     hgt = n * LH
-    natural = [a * hgt for _, a, _ in items]
+    natural = [a * (hgt - IMG_TRIM) for _, a, _ in items]
     scale = usable / sum(natural)
-    tags = [f'<img src="{rel(p)}" alt="{html.escape(alt)}" style="width:{nw * scale:.3f}pt;height:{hgt:.3f}pt;flex:none">'
+    tags = [f'<img src="{rel(p)}" alt="{html.escape(alt)}" style="width:{nw * scale:.3f}pt;flex:none">'
             for (p, _, alt), nw in zip(items, natural)]
-    return f'<figure class="fig-wide">{"".join(tags)}</figure>'
+    return f'<figure class="fig-wide" style="height:{hgt:.3f}pt">{"".join(tags)}</figure>'
 
 
-def render_piece(piece: Piece, fills: dict[str, dict[int, int]]) -> str:
+def render_piece(piece: Piece, fills: dict[str, dict[int, int]],
+                 pads: dict[str, dict[int, int]] | None = None) -> str:
     if piece.kind == "opener":
         classes = ["piece", "opener", "single"]
     elif piece.kind == "front":
@@ -383,8 +448,10 @@ def render_piece(piece: Piece, fills: dict[str, dict[int, int]]) -> str:
     if piece.subtitle:
         head.append(f'<p class="subtitle">{centered(piece.subtitle)}</p>')
     if piece.name:
-        who = f"{piece.cls}　{piece.name}" if piece.cls else piece.name
-        head.append(f'<p class="author">{inline(who)}</p>')
+        # 班级号是独立西文，单独用 Constantia
+        who = (f'<span class="num">{piece.cls}</span>　{inline(piece.name)}' if piece.cls
+               else inline(piece.name))
+        head.append(f'<p class="author">{who}</p>')
 
     specs = FILLS.get(piece.key, [])
     sized = fills.get(piece.pid, {})
@@ -401,9 +468,10 @@ def render_piece(piece: Piece, fills: dict[str, dict[int, int]]) -> str:
     grow = next((i for i, s in enumerate(specs) if s.get("grow")), None)
     if tail:
         extra = wide_figure(piece, tail, sized.get(grow, 0) if grow is not None else 0)
+    padded = (pads or {}).get(piece.pid, {})
     for i, s in enumerate(specs):
         if s.get("where", "end") == "end" and not s.get("grow") and i in sized:
-            extra += fill_figure(piece, s, sized[i], i)
+            extra += fill_figure(piece, s, sized[i], i, padded.get(i, 0))
     return (f'<article class="{" ".join(classes)}" id="{piece.pid}">\n'
             f'<header class="head">{"".join(head)}</header>\n{head_figs}'
             f'<div class="body">\n{body}\n</div>\n{extra}</article>')
@@ -450,13 +518,14 @@ def all_pieces(issue: str) -> list[Piece]:
     return front + [x for _, items in groups for x in items]
 
 
-def build_html(issue: str, pages: dict[str, int], fills: dict[str, dict[int, int]]) -> str:
+def build_html(issue: str, pages: dict[str, int], fills: dict[str, dict[int, int]],
+               pads: dict[str, dict[int, int]] | None = None) -> str:
     cfg = ISSUES[issue]
     front, groups = load_issue(issue)
-    body = [render_piece(p, fills) for p in front]
+    body = [render_piece(p, fills, pads) for p in front]
     body.append(render_toc(front, groups, pages))
     for _, items in groups:
-        body.extend(render_piece(p, fills) for p in items)
+        body.extend(render_piece(p, fills, pads) for p in items)
     return ("<!doctype html>\n<html lang=\"zh-Hans\">\n<head>\n<meta charset=\"utf-8\">\n"
             f"<title>{cfg['journal']} {issue}</title>\n"
             '<link rel="stylesheet" href="style.css">\n</head>\n<body>\n'
@@ -557,9 +626,10 @@ def main() -> None:
 
     pages: dict[str, int] = {}
     fills: dict[str, dict[int, int]] = {}      # pid → {配图序号: 行数}
+    pads: dict[str, dict[int, int]] = {}       # pid → {配图序号: 图上方多空的行数}（anchor: bottom）
     base_len: dict[str, int] = {}              # 加文末配图前每篇的页数
     for rnd in range(1, 9):
-        html_path.write_text(build_html(issue, pages, fills), encoding="utf-8")
+        html_path.write_text(build_html(issue, pages, fills, pads), encoding="utf-8")
         render_pdf(html_path, pdf_path)
         starts, spans = piece_pages(pdf_path, issue)
         free = free_lines(pdf_path, spans)
@@ -572,15 +642,25 @@ def main() -> None:
                 if s.get("where", "end") != "end":
                     continue
                 cur = fills.get(pid, {}).get(i)
+                if "staff" in s:                     # 人员表高度按名单算，上方至少空 1 行
+                    need = staff_split(parse_staff(piece.path.parent / s["staff"]))[1]
+                    s = {**s, "max": need, "min": need + 1}
                 if cur is None:
                     # 尚未配图：剩余行数够多才放；通栏图上方空 1 行
                     if free[pid] >= s.get("min", 9):
                         base_len[pid] = length
                         want = free[pid] - (0 if s.get("grow") else 1)
-                        fills.setdefault(pid, {})[i] = min(want, s.get("max", LINES))
+                        n = min(want, s.get("max", LINES))
+                        fills.setdefault(pid, {})[i] = n
+                        if s.get("anchor") == "bottom" and want > n:
+                            pads.setdefault(pid, {})[i] = want - n
                         changed = True
                 elif length > base_len.get(pid, length):
-                    fills[pid][i] = cur - 1          # 挤出新页：缩一行重排
+                    # 挤出新页：先减沉底的空行，再缩图，一次一行重排
+                    if pads.get(pid, {}).get(i):
+                        pads[pid][i] -= 1
+                    else:
+                        fills[pid][i] = cur - 1
                     changed = True
         print(f"第 {rnd} 遍：{pymupdf.open(pdf_path).page_count} 页")
         if not changed:

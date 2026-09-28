@@ -4,16 +4,58 @@
    ========================================================================== */
 
 /* ---------- 字体 ----------
-   西文、数字、页码：Constantia
+   正文夹排的西文、数字：Noto Serif 350（与思源宋体 Regular 字重相近）
+   成段西文（歌词等）与独立西文（页码、班级号）：Constantia
    中文：思源宋体 SC，Regular / Medium / SemiBold / Bold
-   作者、页眉：方正恒仿宋；本机没有时退回朱雀仿宋
-   思源宋体由 fonts.py 实例化成静态 TrueType（避免 PDF 里出现 Type 3 字体）；
+   作者、页眉、导读：方正恒仿宋；本机没有时退回朱雀仿宋
+   思源宋体、Noto Serif 由 fonts.py 实例化成静态 TrueType（避免 PDF 里出现 Type 3 字体）；
    Constantia、方正恒仿宋是商业字体，自行放进 fonts/。
-   各字重按 font-weight 区间声明，一个 font-weight 同时选中中西文对应的字重。 */
+   各字重按 font-weight 区间声明：正文写 font-weight: 350 时，
+   中文落在 Regular（100–450），西文取 350 的实例。                         */
 
-/* 西文：只管拉丁字母、数字和西文标点；破折号、省略号、间隔号仍交给中文字体 */
+/* 西文只管拉丁字母、数字和西文标点；破折号、省略号、间隔号仍交给中文字体 */
 @font-face {
   font-family: "YZ Latin";
+  src: url("fonts/YZLatin-350.ttf") format("truetype"), local("NotoSerif-W350");
+  font-weight: 100 450;
+  font-style: normal;
+  unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
+    U+2018-2019, U+2032-2033, U+2122;
+}
+@font-face {
+  font-family: "YZ Latin";
+  src: url("fonts/YZLatin-500.ttf") format("truetype"), local("NotoSerif-Medium");
+  font-weight: 451 550;
+  font-style: normal;
+  unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
+    U+2018-2019, U+2032-2033, U+2122;
+}
+@font-face {
+  font-family: "YZ Latin";
+  src: url("fonts/YZLatin-600.ttf") format("truetype"), local("NotoSerif-SemiBold");
+  font-weight: 551 650;
+  font-style: normal;
+  unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
+    U+2018-2019, U+2032-2033, U+2122;
+}
+@font-face {
+  font-family: "YZ Latin";
+  src: url("fonts/YZLatin-700.ttf") format("truetype"), local("NotoSerif-Bold");
+  font-weight: 651 1000;
+  font-style: normal;
+  unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
+    U+2018-2019, U+2032-2033, U+2122;
+}
+@font-face {
+  font-family: "YZ Latin";
+  src: url("fonts/YZLatin-Italic-350.ttf") format("truetype"), local("NotoSerif-W350Italic");
+  font-weight: 100 1000;
+  font-style: italic;
+  unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
+    U+2018-2019, U+2032-2033, U+2122;
+}
+@font-face {
+  font-family: "YZ Western";
   src: url("fonts/CONSTAN.TTF") format("truetype"), local("Constantia");
   font-weight: 100 550;
   font-style: normal;
@@ -21,7 +63,7 @@
     U+2018-2019, U+2032-2033, U+2122;
 }
 @font-face {
-  font-family: "YZ Latin";
+  font-family: "YZ Western";
   src: url("fonts/CONSTANB.TTF") format("truetype"), local("Constantia Bold"), local("Constantia-Bold");
   font-weight: 551 1000;
   font-style: normal;
@@ -29,7 +71,7 @@
     U+2018-2019, U+2032-2033, U+2122;
 }
 @font-face {
-  font-family: "YZ Latin";
+  font-family: "YZ Western";
   src: url("fonts/CONSTANI.TTF") format("truetype"), local("Constantia Italic"), local("Constantia-Italic");
   font-weight: 100 550;
   font-style: italic;
@@ -37,7 +79,7 @@
     U+2018-2019, U+2032-2033, U+2122;
 }
 @font-face {
-  font-family: "YZ Latin";
+  font-family: "YZ Western";
   src: url("fonts/CONSTANZ.TTF") format("truetype"), local("Constantia Bold Italic"), local("Constantia-BoldItalic");
   font-weight: 551 1000;
   font-style: italic;
@@ -87,6 +129,7 @@
   --gap: 21pt;       /* 栏间距、首行缩进 */
   --song: "YZ Latin", "YZ Song", serif;
   --fang: "YZ Latin", "YZ FangSong", "YZ Song", serif;
+  --western: "YZ Western", "YZ Song", serif;          /* 成段西文、独立西文 */
 }
 
 @page {
@@ -94,7 +137,7 @@
   margin: 24.5mm 27.2mm 27.5mm 27.2mm;
   @bottom-center {
     content: counter(page);
-    font-family: "YZ Latin", serif;
+    font-family: "YZ Western", serif;
     font-weight: 400;
     font-size: 9pt;
     font-variant-numeric: oldstyle-nums;   /* 页码用 Constantia 的旧式数字 */
@@ -158,9 +201,8 @@
 
 html {
   font-family: var(--song);
-  font-weight: 400;
+  font-weight: 350;
   font-size: var(--fs);
-  font-variant-numeric: lining-nums;       /* 正文数字齐线，和汉字对齐 */
   line-height: var(--lh);
   color: #000;
   background: #fff;
@@ -173,6 +215,15 @@ html {
   text-autospace: normal;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
+}
+/* 语言：根元素 lang="zh-Hans"，字体按简体中文（OpenType 语言系统 ZHS）选 locl 字形、做标点挤压；
+   成段西文和西文书名标 lang="en"（ENG），启用西文连字与字距。
+   Chromium 由 lang 属性决定 OpenType 语言系统；font-language-override 它还不支持（141 版），写上备用 */
+:lang(zh-Hans) { font-language-override: "ZHS"; }
+:lang(en) {
+  font-language-override: "ENG";
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures contextual;
 }
 body { margin: 0; }
 p { margin: 0; }
@@ -211,7 +262,11 @@ img { display: block; }
   font-size: var(--fs);
   line-height: var(--lh);
 }
-.hw { font-feature-settings: "halt"; }   /* 居中标题末尾的收口标点取半宽，视觉居中 */
+/* 行内换用别的字体时 line-height 取 1：不按自身字体的上下伸部撑高行框，基线仍落在网格上 */
+.author .num { font-family: var(--western); font-variant-numeric: lining-nums; line-height: 1; }
+.hw { font-feature-settings: "halt"; }
+i { font-style: italic; line-height: 1; }
+.w { font-family: var(--western); font-weight: 400; line-height: 1; }   /* 居中标题末尾的收口标点取半宽，视觉居中 */
 
 /* 正文：双栏 */
 .body {
@@ -224,6 +279,7 @@ img { display: block; }
 .body p {
   text-indent: var(--gap);
   text-align: justify;
+  text-wrap: pretty;               /* 避免段末只剩一个字 */
 }
 .body p.noindent { text-indent: 0; }
 /* 卷首语、致辞、板块导读：单栏通排（每行 42 字，恰为版心全宽） */
@@ -256,7 +312,7 @@ img { display: block; }
 .body > h2:first-child, .body > h3:first-child { margin-top: 0; }
 
 /* 引文、歌词 */
-.body blockquote {
+.body blockquote {                 /* 成段西文（歌词）文字用 Constantia（.w），行框仍按正文字体 */
   margin: 0 0 var(--lh);
 }
 .body blockquote .l {             /* 字号同正文，保证行线对齐；过长的行悬挂缩进折行 */
@@ -286,13 +342,21 @@ img { display: block; }
 .poem .body { columns: auto; }
 .poem .verse { width: fit-content; margin: 0 auto; padding: 0; }
 
-/* 栏内插图：高度取整行，保证两栏行线对齐 */
+/* 插图对齐网格：每张图占整数行（高度写在 figure 上），图片上下内缩到汉字字面框，
+   与旁栏、上下文字的字身齐平；上方空 1 行 */
+:root { --img-top: 3.51pt; --img-trim: 6.85pt; }
 .fig {
-  margin: 0;
-  padding: calc(var(--lh) / 2) 0;
+  display: flow-root;              /* 不让图片的内缩与外边距折叠 */
+  margin: var(--lh) 0 0;
   break-inside: avoid;
 }
-.fig img { width: 100%; object-fit: cover; }
+.body > .fig:first-child { margin-top: 0; }
+.fig img, .fill img, .fig-wide img {
+  margin-top: var(--img-top);
+  height: calc(100% - var(--img-trim));
+  object-fit: cover;
+}
+.fig img { width: 100%; }
 /* 通栏插图 */
 .fig-wide {
   margin: var(--lh) 0 0;
@@ -300,12 +364,36 @@ img { display: block; }
   gap: var(--gap);
   break-inside: avoid;
 }
-.fig-wide img { flex: 1 1 0; min-width: 0; object-fit: cover; }
+.fig-wide img { flex: 1 1 0; min-width: 0; }
 
 /* 留白配图：通栏，高度取整行；文末图上空 1 行，标题下的图下空 1 行 */
-.fill { margin: var(--lh) 0 0; break-inside: avoid; }
+.fill { display: flow-root; margin: var(--lh) 0 0; break-inside: avoid; }
 .fill-head { margin: 0 0 var(--lh); }
-.fill img { width: 100%; height: 100%; object-fit: cover; }
+.fill img { width: 100%; }
+
+/* 人员表：首行正中一道细线，下面两栏与正文栏对齐，仿宋，行距同正文 */
+.staff-rule { height: var(--lh); position: relative; }
+.staff-rule::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%;
+  border-top: 0.5pt solid #000;
+}
+.staff-cols { display: flex; gap: var(--gap); }
+.staff dl { flex: 1 1 0; margin: 0; }
+.staff .e { display: grid; grid-template-columns: max-content 1fr; }
+.staff dt, .staff dd {
+  margin: 0;
+  font-family: var(--fang);
+  font-weight: 500;
+  line-height: var(--lh);
+  text-align: left;
+}
+.staff .r {                      /* 职务两端撑满同一宽度（--staff-label 为最长职务的字数） */
+  display: inline-block;
+  width: var(--staff-label);
+  text-align: justify;
+  text-align-last: justify;
+}
+.staff .n { white-space: nowrap; }
 
 /* ---------- 目录 ---------- */
 
@@ -329,4 +417,5 @@ img { display: block; }
 }
 .toc li .t { text-align: left; }
 .toc li .a { font-family: var(--fang); font-weight: 500; }
-.toc li .p { text-align: right; font-variant-numeric: oldstyle-nums tabular-nums; }
+.toc li .p { text-align: right; font-family: var(--western); font-weight: 400; line-height: 1;
+  font-variant-numeric: oldstyle-nums tabular-nums; }

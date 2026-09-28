@@ -731,7 +731,7 @@ def stadium_pts(cx: float, cy: float, L: float, R: float, squash: float, n: int 
     return pts
 
 
-def oval_track(w: float, h: float, seed: int = 10, lanes: int = 6) -> str:
+def oval_track(w: float, h: float, seed: int = 10, lanes: int = 6, sun: bool = True) -> str:
     """从高处望下去的一圈跑道，场心球场，远处落日，近处云海托底。"""
     rng = random.Random(seed)
     c = Canvas(w, h)
@@ -741,7 +741,8 @@ def oval_track(w: float, h: float, seed: int = 10, lanes: int = 6) -> str:
     cx, cy = w * 0.5, h * 0.5
     lane = R * 0.075
     r = h * 0.13
-    circle(c, w * 0.8, cy - R * squash - lane * lanes * squash - r * 0.4, r)
+    if sun:
+        circle(c, w * 0.8, cy - R * squash - lane * lanes * squash - r * 0.4, r)
     streak(c, w * 0.05, h * 0.12, w * 0.35, h * 0.06, thick=1.1)
     outer = stadium_pts(cx, cy, L, R + lane * lanes, squash)
     c.path(poly(outer, closed=True), sw=MAIN, fill="#fff")
@@ -1256,14 +1257,15 @@ def window_view(w: float, h: float, seed: int = 19) -> str:
 
 # ---------------------------------------------------------------- 起跑线与旗
 
-def startline(w: float, h: float, seed: int = 20) -> str:
+def startline(w: float, h: float, seed: int = 20, sun: bool = True) -> str:
     """黄昏的空跑道：脚下是起跑线，远处落日，旗杆上半展的绸旗，风从跑道上吹过。"""
     rng = random.Random(seed)
     c = Canvas(w, h)
     hy = h * 0.34
     vx = w * 0.46
     r = min(w * 0.08, h * 0.15)
-    circle(c, w * 0.28, hy - r * 0.2, r)
+    if sun:
+        circle(c, w * 0.28, hy - r * 0.2, r)
     c.path(f"M0,{f2(hy)} L{f2(w)},{f2(hy)}", sw=THIN)
     bl, br = -w * 0.25, w * 1.1
     tl, trr = vx - w * 0.03, vx + w * 0.03
@@ -1454,6 +1456,99 @@ def letter(w: float, h: float, seed: int = 25) -> str:
     return c.svg()
 
 
+# ---------------------------------------------------------------- 墨勾山脊
+
+def brush_stroke(c: Canvas, pts, th: float, rng: random.Random, fill: str = "#000") -> None:
+    """两头尖、中间粗的毛笔笔触：沿中心线向两侧各偏一半粗细，合成填充形。"""
+    n = len(pts)
+    up, dn = [], []
+    for i, (x, y) in enumerate(pts):
+        t = i / (n - 1)
+        k = th * math.sin(math.pi * t) ** 0.55 * (0.75 + 0.25 * math.sin(t * 9 + x * 0.05))
+        (xa, ya), (xb, yb) = pts[max(i - 1, 0)], pts[min(i + 1, n - 1)]
+        L = math.hypot(xb - xa, yb - ya) or 1
+        nx, ny = -(yb - ya) / L, (xb - xa) / L
+        up.append((x + nx * k * 0.35, y + ny * k * 0.35))
+        dn.append((x - nx * k * 0.65, y - ny * k * 0.65))
+    c.path(smooth(up) + " L" + smooth(dn[::-1])[1:] + "Z", sw=0, fill=fill)
+
+
+def ink_ridges(w: float, h: float, seed: int = 27, rows: int = 5) -> str:
+    """山下的云与山脊：「深一道浅一道，像谁用墨在宣纸上随意勾了几笔，剩下的都交给了留白」。"""
+    rng = random.Random(seed)
+    c = Canvas(w, h)
+    for r in range(rows):
+        z = r / (rows - 1)                      # 0 远 → 1 近
+        base = h * (0.28 + 0.62 * z)
+        amp = h * (0.08 + 0.2 * z)
+        peaks = [(rng.uniform(-0.1, 1.1) * w, rng.uniform(0.35, 1.0) * amp, rng.uniform(0.06, 0.16) * w)
+                 for _ in range(3 + r)]
+        # 每道山脊断成两三笔，笔间留出飞白
+        x = w * rng.uniform(-0.05, 0.25) if r < rows - 1 else -8
+        while x < w:
+            seg = w * rng.uniform(0.25, 0.55) * (0.7 + 0.5 * z)
+            xs = list(frange(x, min(x + seg, w + 8), 3))
+            if len(xs) > 4:
+                pts = [(px, base - sum(a * math.exp(-((px - cx) / s) ** 2) for cx, a, s in peaks)
+                        + 0.8 * math.sin(px / 11 + r)) for px in xs]
+                brush_stroke(c, pts, 0.7 + 3.2 * z ** 1.3, rng, fill="#000" if z > 0.3 else "#555")
+            x += seg + w * rng.uniform(0.03, 0.12)
+    return c.svg()
+
+
+# ---------------------------------------------------------------- 风中垂柳
+
+def willow_leaf(c: Canvas, x: float, y: float, L: float, ang: float, wid: float = 0.2) -> None:
+    """柳叶：两道弧合成的细长叶片。"""
+    dx, dy = math.cos(ang), math.sin(ang)
+    nx, ny = -dy, dx
+    x1, y1 = x + dx * L, y + dy * L
+    mx, my = x + dx * L * 0.42, y + dy * L * 0.42
+    k = L * wid
+    c.path(f"M{f2(x)},{f2(y)} Q{f2(mx + nx * k)},{f2(my + ny * k)} {f2(x1)},{f2(y1)} "
+           f"Q{f2(mx - nx * k)},{f2(my - ny * k)} {f2(x)},{f2(y)}Z", sw=HAIR, fill="#fff")
+
+
+def willow(w: float, h: float, seed: int = 26, wind: float = 0.55) -> str:
+    """风乎舞雩：画外的柳树只露出左上角一段枝干，柳条自上沿垂下，被风吹向右边；右侧几片飞叶、几道风线。"""
+    rng = random.Random(seed)
+    c = Canvas(w, h)
+    for _ in range(3):
+        y = h * rng.uniform(0.35, 0.85)
+        x0 = w * rng.uniform(0.62, 0.8)
+        streak(c, x0, y + 2, x0 + w * rng.uniform(0.1, 0.16), y - 3, thick=rng.uniform(0.8, 1.1))
+    # 左上角的一段枝干，弯出上沿
+    br = [(-6, h * 0.34), (w * 0.05, h * 0.18), (w * 0.12, h * 0.07), (w * 0.2, -4)]
+    c.path(smooth(br), sw=MAIN * 1.8)
+    c.path(smooth([(w * 0.05, h * 0.18), (w * 0.09, h * 0.2), (w * 0.14, h * 0.17)]), sw=MAIN)
+    # 柳条：根部沿上沿和枝干分布，左密右疏；越往下被风吹得越偏
+    roots = [(w * 0.03 + w * 0.6 * rng.random() ** 1.4, -2.0) for _ in range(20)]
+    roots += [(w * rng.uniform(0.02, 0.13), h * rng.uniform(0.1, 0.25)) for _ in range(3)]
+    roots.sort()
+    for x, y in roots:
+        L = (h - y) * rng.uniform(0.6, 1.08)
+        sway = wind * rng.uniform(0.7, 1.15)
+        ph = rng.uniform(0, 6)
+        tw = [(x + sway * L * t ** 2 + 1.2 * math.sin(t * 5 + ph), y + L * t * (1 - 0.22 * sway * t))
+              for t in (i / 29 for i in range(30))]
+        c.path(smooth(tw), sw=HAIR * 1.2)
+        # 柳叶：约每 5 pt 一片，左右交替，顺着柳条斜向下
+        acc, side = 0.0, 1
+        for (ax, ay), (bx, by) in zip(tw[3:], tw[4:]):
+            acc += math.hypot(bx - ax, by - ay)
+            if acc < 5:
+                continue
+            acc = 0.0
+            side = -side
+            ang = math.atan2(by - ay, bx - ax)
+            willow_leaf(c, ax, ay, rng.uniform(5, 6.8), ang + side * rng.uniform(0.3, 0.55), wid=0.24)
+    # 被风带走的叶子
+    for _ in range(7):
+        willow_leaf(c, w * rng.uniform(0.66, 0.97), h * rng.uniform(0.2, 0.9), rng.uniform(5, 6.5),
+                    rng.uniform(-1.2, 0.4), wid=0.26)
+    return c.svg()
+
+
 PATTERNS = {
     "cloudsea": cloudsea,
     "seawaves": seawaves,
@@ -1476,6 +1571,8 @@ PATTERNS = {
     "shuttle": shuttle,
     "book_leaf": book_leaf,
     "letter": letter,
+    "willow": willow,
+    "ink_ridges": ink_ridges,
 }
 
 
