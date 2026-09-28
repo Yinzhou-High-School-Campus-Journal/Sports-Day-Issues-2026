@@ -1,0 +1,328 @@
+/* ==========================================================================
+   《云图试骏》内页样式
+   A4；版心 155.6 mm × 245 mm = 双栏各 20 字 × 40 行（10.5 pt / 17.35 pt）
+   ========================================================================== */
+
+/* ---------- 字体 ----------
+   西文：Noto Serif，正文取 350
+   中文：思源宋体 SC，Regular / Medium / SemiBold / Bold
+   作者：方正恒仿宋；本机没有时退回朱雀仿宋
+   字体文件由 fonts.py 生成到 fonts/（静态 TrueType，避免 PDF 里出现 Type 3 字体）。
+   各字重按 font-weight 区间声明：正文写 font-weight: 350 时，
+   中文落在 Regular（100–450），西文取 350 的实例。                          */
+
+/* 西文：Noto Serif 静态实例（fonts.py 生成）；只管拉丁字母、数字和西文标点，
+   破折号、省略号、间隔号仍交给中文字体 */
+@font-face {
+  font-family: "YZ Latin";
+  src: url("fonts/YZLatin-350.ttf") format("truetype");
+  font-weight: 100 450;
+  font-style: normal;
+  unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
+    U+2018-2019, U+2032-2033, U+2122;
+}
+@font-face {
+  font-family: "YZ Latin";
+  src: url("fonts/YZLatin-500.ttf") format("truetype");
+  font-weight: 451 550;
+  font-style: normal;
+  unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
+    U+2018-2019, U+2032-2033, U+2122;
+}
+@font-face {
+  font-family: "YZ Latin";
+  src: url("fonts/YZLatin-600.ttf") format("truetype");
+  font-weight: 551 650;
+  font-style: normal;
+  unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
+    U+2018-2019, U+2032-2033, U+2122;
+}
+@font-face {
+  font-family: "YZ Latin";
+  src: url("fonts/YZLatin-700.ttf") format("truetype");
+  font-weight: 651 1000;
+  font-style: normal;
+  unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
+    U+2018-2019, U+2032-2033, U+2122;
+}
+@font-face {
+  font-family: "YZ Latin";
+  src: url("fonts/YZLatin-Italic-350.ttf") format("truetype");
+  font-weight: 100 1000;
+  font-style: italic;
+  unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
+    U+2018-2019, U+2032-2033, U+2122;
+}
+/* 中文：思源宋体 SC（Noto Serif SC 静态实例，与思源宋体同一套字形） */
+@font-face {
+  font-family: "YZ Song";
+  src: url("fonts/YZSong-400.ttf") format("truetype"), local("SourceHanSerifSC-Regular"), local("NotoSerifCJKsc-Regular");
+  font-weight: 100 450;
+}
+@font-face {
+  font-family: "YZ Song";
+  src: url("fonts/YZSong-500.ttf") format("truetype"), local("SourceHanSerifSC-Medium"), local("NotoSerifCJKsc-Medium");
+  font-weight: 451 550;
+}
+@font-face {
+  font-family: "YZ Song";
+  src: url("fonts/YZSong-600.ttf") format("truetype"), local("SourceHanSerifSC-SemiBold"), local("NotoSerifCJKsc-SemiBold");
+  font-weight: 551 650;
+}
+@font-face {
+  font-family: "YZ Song";
+  src: url("fonts/YZSong-700.ttf") format("truetype"), local("SourceHanSerifSC-Bold"), local("NotoSerifCJKsc-Bold");
+  font-weight: 651 1000;
+}
+/* 方正恒仿宋简繁（FZHengFangSongJF）；封面用的是 Medium，内页作者行同样用 Medium */
+@font-face {
+  font-family: "YZ FangSong";
+  src: url("fonts/FZHengFSJF-R.TTF") format("truetype"), local("FZHENGFSJF-R--GBK1-0"),
+    local("FZHengFangSongJF"), url("fonts/ZhuqueFangsong-Regular.ttf") format("truetype");
+  font-weight: 100 450;
+}
+@font-face {
+  font-family: "YZ FangSong";
+  src: url("fonts/FZHengFSJF-M.TTF") format("truetype"), local("FZHENGFSJF-M--GBK1-0"),
+    local("FZHengFangSongJF Medium"), url("fonts/ZhuqueFangsong-Regular.ttf") format("truetype");
+  font-weight: 451 1000;
+}
+
+/* ---------- 版心网格 ---------- */
+
+:root {
+  --fs: 10.5pt;      /* 正文字号 */
+  --lh: 17.35pt;     /* 行距 = 1 行 */
+  --gap: 21pt;       /* 栏间距、首行缩进 */
+  --song: "YZ Latin", "YZ Song", serif;
+  --fang: "YZ Latin", "YZ FangSong", "YZ Song", serif;
+}
+
+@page {
+  size: 210mm 297mm;
+  margin: 24.5mm 27.2mm 27.5mm 27.2mm;
+  @bottom-center {
+    content: counter(page);
+    font-family: "YZ Latin", serif;
+    font-weight: 350;
+    font-size: 9pt;
+    vertical-align: top;
+    padding-top: 7.5mm;
+  }
+}
+/* 各栏目页眉：命名页 */
+@page front { }
+@page xiaoyun {
+  @top-center {
+    content: "校　运　风　采";
+    font-family: "YZ FangSong", "YZ Song", serif;
+    font-weight: 500;
+    font-size: 9pt;
+    vertical-align: bottom;
+    padding-bottom: 8mm;
+  }
+}
+@page shaonian {
+  @top-center {
+    content: "少　年　心　语";
+    font-family: "YZ FangSong", "YZ Song", serif;
+    font-weight: 500;
+    font-size: 9pt;
+    vertical-align: bottom;
+    padding-bottom: 8mm;
+  }
+}
+@page xiaoyuan {
+  @top-center {
+    content: "校　园　绘　卷";
+    font-family: "YZ FangSong", "YZ Song", serif;
+    font-weight: 500;
+    font-size: 9pt;
+    vertical-align: bottom;
+    padding-bottom: 8mm;
+  }
+}
+@page shehui {
+  @top-center {
+    content: "社　会　观　察";
+    font-family: "YZ FangSong", "YZ Song", serif;
+    font-weight: 500;
+    font-size: 9pt;
+    vertical-align: bottom;
+    padding-bottom: 8mm;
+  }
+}
+@page guyun {
+  @top-center {
+    content: "古　韵　风　雅";
+    font-family: "YZ FangSong", "YZ Song", serif;
+    font-weight: 500;
+    font-size: 9pt;
+    vertical-align: bottom;
+    padding-bottom: 8mm;
+  }
+}
+
+html {
+  font-family: var(--song);
+  font-weight: 350;
+  font-size: var(--fs);
+  line-height: var(--lh);
+  color: #000;
+  background: #fff;
+  font-synthesis: none;
+  font-kerning: normal;
+  /* 标点挤压：行首开口标点半宽、相邻标点挤压；支持 trim-both 的浏览器还会压缩行尾 */
+  text-spacing-trim: trim-start;
+  text-spacing-trim: trim-both;
+  /* 中西文自动加空 */
+  text-autospace: normal;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+body { margin: 0; }
+p { margin: 0; }
+img { display: block; }
+
+/* ---------- 篇章 ---------- */
+
+.piece { break-before: page; }
+.piece:first-child { break-before: auto; }
+.front { page: front; }
+.sec-xiaoyun  { page: xiaoyun; }
+.sec-shaonian { page: shaonian; }
+.sec-xiaoyuan { page: xiaoyuan; }
+.sec-shehui   { page: shehui; }
+.sec-guyun    { page: guyun; }
+
+/* 标题区（跨两栏） */
+.head { text-align: center; }
+.title {
+  margin: 0;
+  font-weight: 700;              /* 思源宋体 Bold */
+  font-size: 18pt;
+  line-height: 26.04pt;
+}
+.title.bare { margin-bottom: calc(var(--lh) * 3.5); }   /* 裸大标题：段后 3.5 行 */
+.subtitle {
+  font-size: 12pt;
+  line-height: var(--lh);
+}
+.author {                         /* 作者：段前段后 2.5 行 */
+  margin: calc(var(--lh) * 2.5) 0;
+  font-family: var(--fang);
+  font-weight: 500;
+  font-size: var(--fs);
+  line-height: var(--lh);
+}
+.hw { font-feature-settings: "halt"; }   /* 居中标题末尾的收口标点取半宽，视觉居中 */
+
+/* 正文：双栏 */
+.body {
+  columns: 2;
+  column-gap: var(--gap);
+  column-fill: balance;
+  orphans: 1;
+  widows: 1;
+}
+.body p {
+  text-indent: var(--gap);
+  text-align: justify;
+}
+.body p.noindent { text-indent: 0; }
+
+/* 中标题：思源宋体 SemiBold 14 pt，段前段后 1 行 */
+.body h2 {
+  margin: var(--lh) 0;
+  font-weight: 600;
+  font-size: 14pt;
+  line-height: var(--lh);
+  text-align: center;
+  break-after: avoid;
+  break-inside: avoid;
+}
+/* 小标题：思源宋体 Medium 12 pt，段前段后 0.5 行 */
+.body h3 {
+  margin: calc(var(--lh) / 2) 0;
+  font-weight: 500;
+  font-size: 12pt;
+  line-height: var(--lh);
+  text-align: left;
+  break-after: avoid;
+  break-inside: avoid;
+}
+.body > h2:first-child, .body > h3:first-child { margin-top: 0; }
+
+/* 引文、歌词 */
+.body blockquote {
+  margin: 0 0 var(--lh);
+  padding-left: var(--gap);
+}
+.body blockquote .l {
+  display: block;
+  padding-left: 1em;
+  text-indent: -1em;
+  text-align: left;
+  font-style: italic;
+  font-size: 9.5pt;
+}
+.body blockquote .src {
+  break-before: avoid;
+  text-indent: 0;
+  text-align: right;
+  font-size: 9.5pt;
+}
+
+/* 诗行 */
+.verse { break-inside: avoid; }
+.verse .stanza + .stanza { margin-top: var(--lh); }
+.verse .l {
+  display: block;
+  padding-left: 2em;
+  text-indent: -2em;
+  text-align: left;
+}
+.body .verse { margin: 0 0 var(--lh); padding-left: var(--gap); }
+/* 整篇是诗：单栏，诗块在版心居中 */
+.poem .body { columns: auto; }
+.poem .verse { width: fit-content; margin: 0 auto; padding: 0; }
+
+/* 栏内插图：高度取整行，保证两栏行线对齐 */
+.fig {
+  margin: 0;
+  padding: calc(var(--lh) / 2) 0;
+  break-inside: avoid;
+}
+.fig img { width: 100%; object-fit: cover; }
+/* 通栏插图 */
+.fig-wide {
+  margin: 0;
+  display: flex;
+  gap: var(--gap);
+  break-inside: avoid;
+}
+.fig-wide img { flex: 1 1 0; min-width: 0; object-fit: cover; }
+
+/* ---------- 目录 ---------- */
+
+.toc .list { columns: 2; column-gap: var(--gap); orphans: 1; widows: 1; }
+.toc h2 {
+  margin: var(--lh) 0;
+  font-weight: 600;
+  font-size: 14pt;
+  line-height: var(--lh);
+  text-align: center;
+  break-after: avoid;
+}
+.toc .list > h2:first-child { margin-top: 0; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li {
+  display: grid;
+  grid-template-columns: 1fr auto 1.6em;
+  column-gap: 0.8em;
+  align-items: last baseline;
+  break-inside: avoid;
+}
+.toc li .t { text-align: left; }
+.toc li .a { font-family: var(--fang); font-weight: 500; }
+.toc li .p { text-align: right; font-variant-numeric: tabular-nums; }

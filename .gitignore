@@ -1,1 +1,4 @@
 .DS_Store
+排版/fonts/
+排版/node_modules/
+排版/*.tmp.pdf
