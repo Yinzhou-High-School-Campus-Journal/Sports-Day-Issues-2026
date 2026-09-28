@@ -121,7 +121,7 @@ FILLS_2: dict[str, list[dict]] = {
 
 # 各期配置。sections 为板块目录（可带「01_」这类序号前缀，页眉和目录里去掉）；
 # 板块目录里序号为 0 的稿件（如 00_导读.md）排成板块起始页。
-# 内页从目录起：目录（右页）、人员表（左页）两页不印页码、不计页数，其后的第一页（右页）为第 1 页。
+# 内页从人员表起：人员表（右页）、目录（左页）两页不印页码、不计页数，其后的第一页（右页）为第 1 页。
 ISSUES = {
     "第二期": {
         "journal": "云图试骏",
@@ -132,7 +132,7 @@ ISSUES = {
         "section_names": {"01_赴新征": "红砖絮语", "02_竞风华": "赛道秋声",
                           "03_笃前行": "青衿问道", "04_逐韶光": "思接千载"},
         "back": ["卷尾语.md"],          # 全刊最后
-        "staff": "人员表.md",           # 目录后面单占一页（封面、扉页另做，不在内页里）
+        "staff": "人员表.md",           # 内页第一页，在目录前（封面另做，不设扉页）
         "toc_class": True,              # 目录标班级
         "options": OPTIONS_2,
         "fills": FILLS_2,
@@ -330,27 +330,22 @@ STAFF_NAME_EM = 7                # 人员表姓名栏宽：两个三字名加一
 
 
 def render_staff(issue: str) -> str:
-    """人员表单占一页（目录后的左页）。仿 V5 竖式：窄窄一栏，每行至多两个姓名，转行与首个姓名对齐；
-    职务撑成同宽，冒号、姓名上下对齐。「特别致谢」隔一行排在最后，单位名按姓名栏宽折行。
-    整块在版心里上下左右居中，上方空白取整行，基线落在行线上。"""
+    """人员表单占一页（内页第一页，右页）。仿 V5 竖式：窄窄一栏，每行至多两个姓名，转行与首个姓名对齐；
+    职务撑成同宽，冒号、姓名上下对齐。「特别致谢」紧接着排在最后一行，单位名不折行。
+    整块排在版心左上角，从第一行起，基线落在行线上。"""
     cfg = ISSUES[issue]
     entries = parse_staff(ROOT / issue / cfg["staff"])
     label = max(len(r) for r, _ in entries)
-    rows, items = 0, []
+    items = []
     for r, ns in entries:
         role = f'<dt><span class="r">{html.escape(r)}</span>：</dt>'
         if r.startswith("特别致谢"):
-            text = "".join(ns)
-            rows += 1 + math.ceil(len(text) / STAFF_NAME_EM)
-            items.append(f'<div class="e thanks">{role}<dd>{html.escape(text)}</dd></div>')
+            items.append(f'<div class="e thanks">{role}<dd>{html.escape("".join(ns))}</dd></div>')
         else:
-            rows += math.ceil(len(ns) / 2)
             items.append(f'<div class="e">{role}<dd>'
                          + "　".join(f'<span class="n">{html.escape(n)}</span>' for n in ns) + "</dd></div>")
-    pad = (LINES - rows) // 2 * LH
     return (f'<section class="piece staff staff-page" id="staff" aria-label="人员表" '
-            f'style="padding-top:{pad:.3f}pt;--staff-label:{label}em;--staff-names:{STAFF_NAME_EM}em">'
-            f'<dl>{"".join(items)}</dl></section>')
+            f'style="--staff-label:{label}em;--staff-names:{STAFF_NAME_EM}em"><dl>{"".join(items)}</dl></section>')
 
 
 def fill_figure(piece: Piece, spec: dict, lines: int, idx: int, pad: int = 0) -> str:
@@ -604,10 +599,9 @@ def build_html(issue: str, pages: dict[str, int], fills: dict[str, dict[int, int
     """pages 为各篇印出来的页码（目录、人员表不计页数，其后的第一页是第 1 页）。"""
     cfg = ISSUES[issue]
     front, groups, back = load_issue(issue)
-    body = [render_piece(p, fills, pads, tops) for p in front]
+    body = [render_staff(issue)] if cfg.get("staff") else []
+    body += [render_piece(p, fills, pads, tops) for p in front]
     body.append(render_toc(front, groups, pages, cfg.get("toc_class", False), back))
-    if cfg.get("staff"):
-        body.append(render_staff(issue))
     for _, items in groups:
         body.extend(render_piece(p, fills, pads, tops) for p in items)
     body.extend(render_piece(p, fills, pads, tops) for p in back)
@@ -626,7 +620,7 @@ def render_pdf(html_path: Path, pdf_path: Path) -> None:
 
 
 def piece_pages(pdf_path: Path, issue: str) -> tuple[dict[str, int], dict[str, tuple[int, int]]]:
-    """根据 PDF 书签（每篇的 h1）确定每篇的起止页。人员表页没有标题，算在目录（toc）的页数里。"""
+    """根据 PDF 书签（每篇的 h1）确定每篇的起止页。人员表页（第 1 页）没有标题，不在书签里。"""
     front, groups, back = load_issue(issue)
     order = [(p.pid, p.title) for p in front] + [("toc", "目录")] + \
             [(x.pid, x.title) for _, items in groups for x in items] + [(p.pid, p.title) for p in back]
@@ -675,20 +669,34 @@ def pdf_text(s: str) -> str:
     return "<FEFF" + s.encode("utf-16-be").hex().upper() + ">"
 
 
-def set_page_labels(doc: pymupdf.Document, toc: tuple[int, int], staff: bool) -> None:
-    """PDF 页码标签，与印出来的页码一致：目录、人员表这两页不计页码，标签直接写「目录」「人员表」，
-    不用罗马数字；其后从 1 起。目录前若还有稿件，从 1 数，目录之后接着数。
-    toc 为目录（连同后面没有标题的人员表页）的起止页，从 1 数。
+def uncounted_pages(spans: dict[str, tuple[int, int]], staff: bool) -> dict[int, str]:
+    """不印页码、不计页数的页：{PDF 里的第几页（从 1 数）: 页码标签}。人员表是第 1 页，目录随后。"""
+    out = {1: "人员表"} if staff else {}
+    out.update({n: "目录" for n in range(spans["toc"][0], spans["toc"][1] + 1)})
+    return out
+
+
+def printed_page(n: int, uncounted: dict[int, str]) -> int:
+    """PDF 里的第 n 页印出来是第几页：前面不计页数的页不算。"""
+    return n - sum(1 for u in uncounted if u < n)
+
+
+def set_page_labels(doc: pymupdf.Document, uncounted: dict[int, str]) -> None:
+    """PDF 页码标签，与印出来的页码一致：人员表、目录这两页的标签直接写「人员表」「目录」，不用罗马数字；
+    其余页用印出来的页码。
     （PyMuPDF 的 set_page_labels 把中文前缀存成不带 BOM 的 UTF-8，有的阅读器显示乱码，所以直接写页码树。）"""
-    n = toc[1] - toc[0] + 1
-    names = ["目录"] * (n - 1) + ["人员表"] if staff else ["目录"] * n
-    nums = ["0 <</S /D>>"] if toc[0] > 1 else []
-    nums += [f"{toc[0] - 1 + k} <</P {pdf_text(name)}>>" for k, name in enumerate(names)]
-    nums.append(f"{toc[1]} <</S /D /St {toc[0]}>>")
+    nums, in_run = [], False
+    for n in range(1, doc.page_count + 1):
+        if n in uncounted:
+            nums.append(f"{n - 1} <</P {pdf_text(uncounted[n])}>>")
+            in_run = False
+        elif not in_run:
+            nums.append(f"{n - 1} <</S /D /St {printed_page(n, uncounted)}>>")
+            in_run = True
     doc.xref_set_key(doc.pdf_catalog(), "PageLabels", f"<</Nums [{' '.join(nums)}]>>")
 
 
-def finalize(issue: str, pdf_path: Path, toc: tuple[int, int], note: str = "") -> None:
+def finalize(issue: str, pdf_path: Path, uncounted: dict[int, str], note: str = "") -> None:
     """写入元数据和页码标签。"""
     cfg = ISSUES[issue]
     title = " ".join(x for x in (cfg["journal"], issue, cfg.get("name", ""), "内页", note) if x)
@@ -700,7 +708,7 @@ def finalize(issue: str, pdf_path: Path, toc: tuple[int, int], note: str = "") -
         "creator": "排版/build.py（HTML → Chromium）",
         "producer": doc.metadata.get("producer", ""),
     })
-    set_page_labels(doc, toc, bool(cfg.get("staff")))
+    set_page_labels(doc, uncounted)
     doc.save(pdf_path.with_suffix(".tmp.pdf"), garbage=3, deflate=True)
     doc.close()
     pdf_path.with_suffix(".tmp.pdf").replace(pdf_path)
@@ -718,7 +726,7 @@ def write_toc_md(issue: str, pages: dict[str, int]) -> None:
     names = "、".join(n for n, _ in groups)
     # 这份目录也同步到只放稿件的 print 分支，所以不引用排版目录里的文件
     out = [f"# {issue}稿件目录", "",
-           f"按刊登顺序排列；页码为最新一次排版印出来的页码：内页从目录起，目录、人员表两页不印页码、不计页数，"
+           f"按刊登顺序排列；页码为最新一次排版印出来的页码：内页从人员表起，人员表、目录两页不印页码、不计页数，"
            f"其后的第一页为第 1 页。板块名印作{names}（稿件目录名未改）；各板块起始页的导读在各板块目录的 `00_导读.md`，"
            f"人员表在 [`{cfg['staff']}`](<{cfg['staff']}>)。", ""]
 
@@ -761,8 +769,8 @@ def main() -> None:
         free = free_lines(pdf_path, spans)
         changed = starts != phys
         phys = starts
-        toc_n = spans["toc"][1] - spans["toc"][0] + 1
-        pages = {pid: (n - toc_n if n > spans["toc"][1] else n) for pid, n in starts.items()}
+        skip = uncounted_pages(spans, bool(cfg.get("staff")))
+        pages = {pid: printed_page(n, skip) for pid, n in starts.items()}
         # 没有配图的起始页：文字整组上下居中
         for pid, piece in pieces.items():
             if piece.kind == "opener" and not FILLS.get(piece.key) and pid not in tops and free[pid] > 1:
@@ -808,14 +816,14 @@ def main() -> None:
                        "free_lines": free[pid], "fills": fills.get(pid, {})})
     (HERE / f"{issue}版面.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
     total = pymupdf.open(pdf_path).page_count
-    finalize(issue, pdf_path, spans["toc"])
+    finalize(issue, pdf_path, skip)
     # 对照版：只换页码数字的样式，版面不变
     alt_html = HERE / f"{issue}（齐线数字）.tmp.html"
     alt_pdf = HERE / f"{issue}内页（齐线数字）.pdf"
     alt_html.write_text(build_html(issue, pages, fills, pads, tops, LINING_CSS), encoding="utf-8")
     render_pdf(alt_html, alt_pdf)
     alt_html.unlink()
-    finalize(issue, alt_pdf, spans["toc"], "（页码用齐线数字）")
+    finalize(issue, alt_pdf, skip, "（页码用齐线数字）")
     write_toc_md(issue, pages)
     # 删掉这一版没用到的图（改名、撤稿后留下的旧图）
     used = set(re.findall(r'src="([^"]+)"', html_path.read_text(encoding="utf-8")))

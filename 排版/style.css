@@ -325,13 +325,13 @@ i { font-style: italic; line-height: 1; }
 .fill-head { margin: 0 0 var(--lh); }
 .fill img { width: 100%; }
 
-/* 人员表（目录后的左页）：仿 V5 竖式——窄窄一栏，每行至多两个姓名（姓名栏 --staff-names 宽），
-   方正恒仿宋，字号、行距同正文；整块居中，不印页码、不计页数 */
+/* 人员表（内页第一页，右页）：仿 V5 竖式——窄窄一栏，每行至多两个姓名（姓名栏 --staff-names 宽），
+   方正恒仿宋，字号、行距同正文；整块排在版心左上角，不印页码、不计页数 */
 @page plain { counter-increment: page 0; @bottom-center { content: none; } }
 .staff-page { page: plain; }
-.staff dl { width: fit-content; margin: 0 auto; }
+.staff dl { margin: 0; }
 .staff .e { display: grid; grid-template-columns: max-content var(--staff-names); }
-.staff .thanks { margin-top: var(--lh); }       /* 特别致谢：隔一行 */
+.staff .thanks dd { width: max-content; }       /* 特别致谢：单位名一行排完，超出姓名栏 */
 .staff dt, .staff dd {
   margin: 0;
   font-family: var(--fang);
