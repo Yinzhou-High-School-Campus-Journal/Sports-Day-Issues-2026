@@ -2,13 +2,13 @@
 """准备排版字体（输出到 排版/fonts/，该目录不进仓库）。
 
 Chromium 打印 PDF 时，CFF 轮廓的 OTF 和可变字体会被转成 Type 3 字体，
-印刷预检容易报错。这里把可变字体实例化成各字重的静态 TrueType：
+印刷预检容易报错。这里把思源宋体实例化成各字重的静态 TrueType：
 
-  思源宋体 SC  ← Noto Serif SC 可变字体（与思源宋体同一套字形）：400 / 500 / 600 / 700
-  Noto Serif   ← Noto Serif 可变字体：350 / 500 / 600 / 700，斜体 350
+  思源宋体 SC ← Noto Serif SC 可变字体（与思源宋体同一套字形）：400 / 500 / 600 / 700
 
-方正恒仿宋是商业字体，需自行把 FZHengFSJF-R.TTF、FZHengFSJF-M.TTF 放进 fonts/；
-缺少时退回开源的朱雀仿宋（ZhuqueFangsong-Regular.ttf，需自行下载）。
+以下商业字体需自行放进 fonts/（不进仓库）：
+  方正恒仿宋：FZHengFSJF-R.TTF、FZHengFSJF-M.TTF（缺少时退回开源的朱雀仿宋 ZhuqueFangsong-Regular.ttf）
+  Constantia：CONSTAN.TTF、CONSTANB.TTF、CONSTANI.TTF、CONSTANZ.TTF
 """
 from __future__ import annotations
 
@@ -22,8 +22,6 @@ FONTS = Path(__file__).resolve().parent / "fonts"
 
 SOURCES = {
     "NotoSerifSC-VF.ttf": "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Serif/Variable/TTF/Subset/NotoSerifSC-VF.ttf",
-    "NotoSerif-VF.ttf": "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserif/NotoSerif%5Bwdth%2Cwght%5D.ttf",
-    "NotoSerif-Italic-VF.ttf": "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserif/NotoSerif-Italic%5Bwdth%2Cwght%5D.ttf",
 }
 
 # 输出文件名 → (源可变字体, 轴坐标, 家族名, 字重名)
@@ -32,11 +30,6 @@ INSTANCES = {
     "YZSong-500.ttf": ("NotoSerifSC-VF.ttf", {"wght": 500}, "Noto Serif SC", "Medium"),
     "YZSong-600.ttf": ("NotoSerifSC-VF.ttf", {"wght": 600}, "Noto Serif SC", "SemiBold"),
     "YZSong-700.ttf": ("NotoSerifSC-VF.ttf", {"wght": 700}, "Noto Serif SC", "Bold"),
-    "YZLatin-350.ttf": ("NotoSerif-VF.ttf", {"wght": 350, "wdth": 100}, "Noto Serif", "W350"),
-    "YZLatin-500.ttf": ("NotoSerif-VF.ttf", {"wght": 500, "wdth": 100}, "Noto Serif", "Medium"),
-    "YZLatin-600.ttf": ("NotoSerif-VF.ttf", {"wght": 600, "wdth": 100}, "Noto Serif", "SemiBold"),
-    "YZLatin-700.ttf": ("NotoSerif-VF.ttf", {"wght": 700, "wdth": 100}, "Noto Serif", "Bold"),
-    "YZLatin-Italic-350.ttf": ("NotoSerif-Italic-VF.ttf", {"wght": 350, "wdth": 100}, "Noto Serif", "W350 Italic"),
 }
 
 
