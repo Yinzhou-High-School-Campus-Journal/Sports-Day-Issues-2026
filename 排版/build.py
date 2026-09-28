@@ -716,8 +716,9 @@ def write_toc_md(issue: str, pages: dict[str, int]) -> None:
     cfg = ISSUES[issue]
     front, groups, back = load_issue(issue)
     names = "、".join(n for n, _ in groups)
+    # 这份目录也同步到只放稿件的 print 分支，所以不引用排版目录里的文件
     out = [f"# {issue}稿件目录", "",
-           f"按刊登顺序排列；页码为印出来的页码，见 `排版/{issue}内页.pdf`：内页从目录起，目录、人员表两页不印页码、不计页数，"
+           f"按刊登顺序排列；页码为最新一次排版印出来的页码：内页从目录起，目录、人员表两页不印页码、不计页数，"
            f"其后的第一页为第 1 页。板块名印作{names}（稿件目录名未改）；各板块起始页的导读在各板块目录的 `00_导读.md`，"
            f"人员表在 [`{cfg['staff']}`](<{cfg['staff']}>)。", ""]
 
