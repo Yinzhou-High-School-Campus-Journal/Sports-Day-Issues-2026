@@ -1,7 +1,7 @@
 {
   "name": "yuntu-shijun-typesetting",
   "private": true,
-  "description": "《云图试骏》内页排版：HTML → Chromium → PDF",
+  "description": "校运会特刊内页排版：HTML → Chromium → PDF",
   "scripts": {
     "build": "python3 build.py 第一期"
   },

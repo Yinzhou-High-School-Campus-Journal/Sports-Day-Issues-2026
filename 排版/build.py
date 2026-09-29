@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""《云图试骏》排版：Markdown 稿件 → HTML → PDF。
+"""校运会特刊排版：Markdown 稿件 → HTML → PDF。
 
 用法：python3 排版/build.py [第二期]
 
@@ -125,7 +125,7 @@ FILLS_2: dict[str, list[dict]] = {
 # Chromium 只排人员表以后的部分；扉页和凑双数的空白页在 finalize() 里拼上。
 ISSUES = {
     "第二期": {
-        "journal": "云图试骏",
+        "journal": "校运会特刊",
         "name": "骋风逐曜",             # 本期名：印在左页页眉（右页页眉为板块名）
         "front": [],                    # 目录之前的稿件：这期不放卷首语、致辞
         "sections": ["01_赴新征", "02_竞风华", "03_笃前行", "04_逐韶光"],
