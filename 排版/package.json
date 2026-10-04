@@ -3,7 +3,7 @@
   "private": true,
   "description": "校运会特刊内页排版：HTML → Chromium → PDF",
   "scripts": {
-    "build": "python3 build.py 第一期"
+    "build": "python3 build.py 第二期"
   },
   "devDependencies": {
     "playwright": "^1.56.1"
