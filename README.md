@@ -1,6 +1,6 @@
-# ShenZehou 分支
+# `ShenZehou` 分支
 
-仓库背景、分支关系、发布入口和通用文件夹规则见 [print 主 README](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/blob/print/README.md)。本页说明本分支的目录、稿件版本与制作源码。
+仓库背景、分支关系、发布入口和通用文件夹规则见 [`print` 主 README](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/blob/print/README.md)。本页说明本分支的目录、稿件版本与制作源码。
 
 ## 对应成品
 
@@ -9,7 +9,7 @@
 | 第一期《云图试骏》 | [Sports_Day_Issues_2026_No_1_ShenZehou.pdf](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/download/2026.9.29/Sports_Day_Issues_2026_No_1_ShenZehou.pdf) | 38 | 53 |
 | 第二期《骋风逐曜》 | [Sports_Day_Issues_2026_No_2_ShenZehou.pdf](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/download/2026.9.29/Sports_Day_Issues_2026_No_2_ShenZehou.pdf) | 39 | 60 |
 
-第一期是未采用的五板块方案，保留“云图试骏”期名。第二期是编辑部提交的版本；校方后续编辑后的 Print 文件另行归档。
+第一期是未采用的五板块方案，保留「云图试骏」期名。第二期是编辑部提交的版本；校方后续编辑后的 `print` 文件另行归档。
 
 ## 稿件目录
 
@@ -26,16 +26,16 @@
 
 [稿件区别表格](<稿件区别表格.md>) 逐篇列出入选、分类、刊载位置、署名、字句、前置内容和最后替换配图的差异。
 
-《山顶的云海日出》第一期署“2610 董排彤”，第二期署“2610 董臙彤”，照各文件保留。维护者确认《形言》正确署名为“2616 吴彦初”，原稿见[原稿/形言_2616_吴彦初.md](<原稿/形言_2616_吴彦初.md>)；Print／Duan 中的误署在区别表中另记。
+《山顶的云海日出》第一期署「2610 董排彤」，第二期署「2610 董臙彤」，照各文件保留。维护者确认《形言》正确署名为「2616 吴彦初」，原稿见[原稿/形言_2616_吴彦初.md](<原稿/形言_2616_吴彦初.md>)；`print`／`DuanJiarui` 中的误署在区别表中另记。
 
 | 对照项目 | 本分支与其他成品的主要区别 |
 | --- | --- |
-| 第一期期名 | 本分支为云图试骏，Print／Duan 为云途试骏 |
-| 第一期选稿 | 本分支五板块 38 篇，Print／Duan 四板块 24 篇 |
-| 第二期选稿 | 本分支保留潘峻昊稿件，Print 撤去该稿并加入星与路灯 |
+| 第一期期名 | 本分支为云图试骏，`print`／`DuanJiarui` 为云途试骏 |
+| 第一期选稿 | 本分支五板块 38 篇，`print`／`DuanJiarui` 四板块 24 篇 |
+| 第二期选稿 | 本分支保留潘峻昊稿件，`print` 撤去该稿并加入星与路灯 |
 | 署名 | 山顶的云海日出两期分别刊载董排彤、董臙彤；形言的正确署名为 2616 吴彦初，印刷成品误署另记 |
 | 正文 | 共对照 140 次刊载、79 个篇名；61 组同稿参照中，38 组有实质字词差异，23 组正文一致 |
-| 后期配图 | Print 第二期替换青春颂、最后五十米、浙里皮影流年配图，并新增星与路灯图片 |
+| 后期配图 | `print` 第二期替换青春颂、最后五十米、浙里皮影流年配图，并新增星与路灯图片 |
 
 ## 制作源码与配图
 
