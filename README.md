@@ -65,7 +65,6 @@
 注：除仓库整理与征稿，一切工作都在 2026 年 9 月 28 日夜至 30 日晨的不足 48 小时内完成。
 
 
-发行文件与封面说明见 [2026.9.29 发行说明](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/tag/2026.9.29)。
 
 ## 文件夹与命名规则
 
