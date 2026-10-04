@@ -1,10 +1,10 @@
-# DuanJiarui 分支
+# `DuanJiarui` 分支
 
-仓库背景、分支关系、发布入口和通用规则见 [print 主 README](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/blob/print/README.md)。本页只说明本分支的第一期版本。
+仓库背景、分支关系、发布入口和通用规则见 [`print` 主 README](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/blob/print/README.md)。本页只说明本分支的第一期版本。
 
 ## 对应成品
 
-本分支对应 [Sports_Day_Issues_2026_No_1_Print.pdf](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/download/2026.9.29/Sports_Day_Issues_2026_No_1_Print.pdf)，即原 V5。成品名为《云途试骏》，与 Print 第一期使用同一文件，正文 24 篇，内页 PDF 51 页，封面由 Release 单独提供。
+本分支对应 [Sports_Day_Issues_2026_No_1_Print.pdf](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/download/2026.9.29/Sports_Day_Issues_2026_No_1_Print.pdf)，即原 V5。成品名为《云途试骏》，与 `print` 第一期使用同一文件，正文 24 篇，内页 PDF 51 页，封面由 Release 单独提供。
 
 本分支未参与第二期制作，不设第二期成品目录；第二期候选稿和其他未刊稿保存在 `待选稿/`。
 
@@ -22,9 +22,9 @@
 
 ## 勘误与署名
 
-[V5校样更正.md](<V5校样更正.md>) 集中保留历史勘误，现行引用采用新 Print 文件名。归档稿记录成品实际文字，更正建议单独保留。
+[V5校样更正.md](<V5校样更正.md>) 集中保留历史勘误，现行引用采用新 `print` 文件名。归档稿记录成品实际文字，更正建议单独保留。
 
-《形言》在文件中误署“高三（6）班 冯欣悦”，成品稿按 2406 冯欣悦命名。正确署名原稿“2616 吴彦初”见[原稿/形言_2616_吴彦初.md](<原稿/形言_2616_吴彦初.md>)。跨版本详情见 ShenZehou 的[稿件区别表格](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/blob/ShenZehou/%E7%A8%BF%E4%BB%B6%E5%8C%BA%E5%88%AB%E8%A1%A8%E6%A0%BC.md)。
+《形言》在文件中误署「高三（6）班 冯欣悦」，成品稿按 2406 冯欣悦命名。正确署名原稿「2616 吴彦初」见[原稿/形言_2616_吴彦初.md](<原稿/形言_2616_吴彦初.md>)。跨版本详情见 `ShenZehou` 的[稿件区别表格](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/blob/ShenZehou/%E7%A8%BF%E4%BB%B6%E5%8C%BA%E5%88%AB%E8%A1%A8%E6%A0%BC.md)。
 
 ## 配图与制作资料
 
