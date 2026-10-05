@@ -46,11 +46,11 @@ IMG_INSET_BOTTOM = LH - 14.01
 IMG_TRIM = IMG_INSET_TOP + IMG_INSET_BOTTOM        # 6.85 pt = 行距 − 字号
 
 SECTIONS = {                    # 板块名 → 命名页（页眉）
-    "1_校运风采": "xiaoyun",
-    "2_少年心语": "shaonian",
-    "3_校园绘卷": "xiaoyuan",
-    "4_社会观察": "shehui",
-    "5_古韵风雅": "guyun",
+    "校运风采": "xiaoyun",
+    "少年心语": "shaonian",
+    "校园绘卷": "xiaoyuan",
+    "社会观察": "shehui",
+    "古韵风雅": "guyun",
 }
 
 ISSUES = {
@@ -59,7 +59,7 @@ ISSUES = {
         "front": ["0_前置/01_卷首语.md", "0_前置/03_开幕式致辞.md"],
         "sections": ["1_校运风采", "2_少年心语", "3_校园绘卷", "4_社会观察", "5_古韵风雅"],
         "cover": ["资产/第一期封面.pdf", "资产/第一期扉页.pdf"],
-        "staff": "0_前置/02_人员表.md",           # 排在全刊最后一页的页底
+        "staff": "0_前置/02_人员表.md",           # 排在卷首语页底
     },
 }
 
@@ -82,7 +82,7 @@ ARTICLE_OPTIONS: dict[str, dict] = {
 #   staff: 不放图，改排人员表（值为稿件目录下的文件名，每行「职务：姓名　姓名」）
 FILLS: dict[str, list[dict]] = {
     # 人员表放在全刊开头：卷首语页底
-    "0_前置/01_卷首语.md": [{"staff": "0_前置/02_人员表.md", "anchor": "bottom"}],
+    "0_前置/01_卷首语.md": [{"staff": "02_人员表.md", "anchor": "bottom"}],
     "0_前置/03_开幕式致辞.md": [{"photo": "资产/配图/2023运动会开幕式_航拍全景_鄞中电视台.jpg", "crop": (0, 0, 0.86, 1),
                        "pos": "50% 0%", "min": 5, "alt": "2023 年运动会开幕式航拍（鄞中电视台）"}],
     # 原片右上角有水印、底边有摄像机入镜，都裁掉

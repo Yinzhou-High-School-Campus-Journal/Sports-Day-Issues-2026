@@ -1,7 +1,7 @@
 {
   "name": "sports-day-2026-issue-2",
   "private": true,
-  "description": "《云图试骏》内页排版：HTML → Chromium → PDF",
+  "description": "《骋风逐曜》内页排版：HTML → Chromium → PDF",
   "scripts": {
     "build": "python3 build.py 第二期"
   },

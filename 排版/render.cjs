@@ -26,7 +26,10 @@ function loadPlaywright() {
   await page.evaluate(() => document.fonts.ready);
   const failed = await page.evaluate(() =>
     [...document.fonts].filter((f) => f.status === 'error').map((f) => `${f.family} ${f.weight}`));
-  if (failed.length) console.log('[字体] 未载入：', failed.join('；'));
+  if (failed.length) {
+    await browser.close();
+    throw new Error('[字体] 未载入：' + failed.join('；'));
+  }
   await page.pdf({
     path: output,
     preferCSSPageSize: true,

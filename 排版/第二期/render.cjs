@@ -26,7 +26,10 @@ function loadPlaywright() {
   await page.evaluate(() => document.fonts.ready);
   const failed = await page.evaluate(() =>
     [...document.fonts].filter((f) => f.status === 'error').map((f) => `${f.family} ${f.weight}`));
-  if (failed.length) console.log('[字体] 未载入：', failed.join('；'));
+  if (failed.length) {
+    await browser.close();
+    throw new Error('[字体] 未载入：' + failed.join('；'));
+  }
   // 有元素横向超出版心时，Chromium 打印会把整份文档等比缩小去适应页宽，行距就对不上网格了。
   // 按版心宽（A4 减去左右边距 = 155.6 mm）在打印样式下检查。
   await page.emulateMedia({ media: 'print' });

@@ -325,7 +325,7 @@ def track(w: float, h: float, seed: int = 4, horizon: float = 0.3, lanes: int = 
 
 # ---------------------------------------------------------------- 封面线稿复用
 
-COVER = HERE.parent / "资产" / "第一期封面.pdf"
+COVER = HERE.parents[1] / "资产" / "第一期封面.pdf"
 
 
 def _hex(c) -> str:
@@ -1461,7 +1461,7 @@ def letter(w: float, h: float, seed: int = 25) -> str:
 @lru_cache(maxsize=4)
 def _font(name: str):
     from fontTools.ttLib import TTFont
-    return TTFont(str(HERE / "fonts" / name))
+    return TTFont(str(HERE.parent / "fonts" / name))
 
 
 def glyph_path(ch: str, size: float, x: float, y: float, font: str = "YZSong-700.ttf") -> str:
