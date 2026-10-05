@@ -12,7 +12,7 @@ gate beam, the teaching blocks and the finned hall. Ginkgo leaves drift by.
   mode=title  title page: the same scene, simplified, in a round vignette
 
 All text is at least 10.5 pt; everything is pure black line work. Units: mm.
-issue=1|2 picks the issue (number, quote, sun height, leaves).
+Issue 1 (《云图试骏》) only; issue 2 (《骋风逐曜》) has its own design in make_issue2.py.
 Rebuild everything with ./build.sh
 """
 import os, sys, html, math, random
@@ -42,12 +42,6 @@ ISSUES = {
               cite='——《山顶的云海日出》', sunrise=6.0, sunr=22.0,
               wisps=[(81, 133.2, 142, 129.5, -1.3, 0.85), (86, 137.2, 124, 135.4, -0.6, 0.45), (124, 106, 170, 101, -1.6, 0.62)],
               leaves=[(150.0, 121.0, 6.4, -32.0), (166.0, 128.0, 4.6, 24.0), (24.0, 110.0, 4.2, -58.0)]),
-    # 《逐风赴赛场，聚力绽芳华》; the flurry of ginkgo after 《勿忘，最好的青春》
-    '2': dict(name='第二期', quote=['炙热的呐喊冲破云霄，', '鲜活的身影驰骋赛场。'],
-              cite='——《逐风赴赛场，聚力绽芳华》', sunrise=24.0, sunr=18.0,
-              wisps=[(76, 125.5, 140, 121.5, -1.3, 0.85), (90, 130.8, 126, 129.2, -0.6, 0.45)],
-              leaves=[(20.0, 86.0, 4.6, -40.0), (30.0, 113.0, 5.8, 20.0), (65.0, 111.0, 4.2, -70.0), (79.0, 121.0, 3.4, 35.0),
-                      (142.0, 112.0, 5.0, -25.0), (160.0, 126.0, 6.2, 30.0), (176.0, 110.0, 3.8, -55.0)]),
 }
 ISS = ISSUES[OPT.get('issue', '1')]
 ISSUE, QUOTE, CITE = ISS['name'], ISS['quote'], ISS['cite']
