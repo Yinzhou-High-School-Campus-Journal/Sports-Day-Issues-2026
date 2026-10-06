@@ -11,7 +11,7 @@
 | `release.py` | 完整制作入口：字体检查、封面与扉页、各期内页与拼页。 |
 | `package.json`、`package-lock.json`、`requirements.txt` | 两期及封面共用的构建依赖。 |
 
-历史发行文件从[发行说明](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/tag/2026.9.29)获取；不再保存可重建的「历史输出」。
+现行发行基准为 [Release `2026.10.6`](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/tag/2026.10.6)，文件指纹与旧版记录见[稿件区别表格](<../版本记录/稿件区别表格.md#核对文件与指纹>)；不再保存可重建的「历史输出」。
 
 重建产物用于验证编辑部方案，不自动替代历史发行文件，也不重建校方后续修改的实际付印版。若发布重建版，应使用独立 Release 或明确区分的文件名，记录来源提交、浏览器与依赖版本、启动参数和校验值，并保留原发行文件及其校验记录。内容与换行一致不等于 PDF 字节或所有像素完全相同。
 
