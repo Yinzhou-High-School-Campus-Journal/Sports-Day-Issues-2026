@@ -1,14 +1,11 @@
 const path = require('path');
 const { pathToFileURL } = require('url');
-const { loadPlaywright } = require('../browser.cjs');
+const { launchChromium } = require('../browser.cjs');
 
 (async () => {
   const [input, pdf, png] = process.argv.slice(2);
   if (!input || !pdf || !png) throw new Error('用法：node render.cjs 输入.html 输出.pdf 输出.png');
-  const { chromium } = loadPlaywright();
-  const browser = await chromium.launch({
-    executablePath: process.env.CHROMIUM_EXECUTABLE || chromium.executablePath(),
-  });
+  const browser = await launchChromium();
   try {
     const page = await browser.newPage({ viewport: { width: 794, height: 1123 }, deviceScaleFactor: 3.125 });
     const missing = [];

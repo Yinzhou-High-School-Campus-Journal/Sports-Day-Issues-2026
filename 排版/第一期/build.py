@@ -34,6 +34,7 @@ OUT_DIR = HERE
 IMG_DIR = OUT_DIR / "images"
 sys.path.insert(0, str(HERE.parent))
 from preflight import check_fonts, require_single_page
+from pdf_metadata import document_metadata
 
 PT_PER_MM = 72 / 25.4
 LH = 17.35                      # 1 行
@@ -599,13 +600,7 @@ def finalize(issue: str, pdf_path: Path) -> tuple[Path, Path]:
     cover, title_page = [ROOT / name for name in cfg["cover"]]
     require_single_page([cover, title_page])
     doc = pymupdf.open(pdf_path)
-    doc.set_metadata({
-        "title": f"{cfg['journal']} {issue} 正文",
-        "author": "鄞州中学媒体部",
-        "subject": "鄞州中学第四十四届暨鄞州蓝青高级中学第二十九届运动会校刊",
-        "creator": "排版/第一期/build.py（HTML → Chromium）",
-        "producer": doc.metadata.get("producer", ""),
-    })
+    doc.set_metadata(document_metadata(issue, "正文", doc.metadata.get("producer", "")))
     doc.save(pdf_path.with_suffix(".tmp.pdf"), garbage=3, deflate=True)
     doc.close()
     pdf_path.with_suffix(".tmp.pdf").replace(pdf_path)
@@ -617,7 +612,7 @@ def finalize(issue: str, pdf_path: Path) -> tuple[Path, Path]:
             out.insert_pdf(title)
             out.insert_pdf(body)
             out.set_toc([[1, "扉页", 1]] + [[t[0], t[1], t[2] + 1] for t in body.get_toc()])
-            out.set_metadata({**body.metadata, "title": f"{cfg['journal']} {issue} 内页"})
+            out.set_metadata({**body.metadata, **document_metadata(issue, "内页", body.metadata.get("producer", ""))})
         set_page_labels(out, ["扉页"])
         temp = inner_path.with_suffix(".tmp.pdf")
         out.save(temp, garbage=3, deflate=True)
@@ -629,7 +624,7 @@ def finalize(issue: str, pdf_path: Path) -> tuple[Path, Path]:
         out.insert_pdf(inner)
         out.set_toc([[1, "封面", 1]] + [[t[0], t[1], t[2] + 1] for t in inner.get_toc()])
         set_page_labels(out, ["封面", "扉页"])
-        out.set_metadata({"title": f"{cfg['journal']} {issue}（含封面预览）", "author": "鄞州中学媒体部"})
+        out.set_metadata(document_metadata(issue, "含封面预览", inner.metadata.get("producer", "")))
         temp = preview.with_suffix(".tmp.pdf")
         out.save(temp, garbage=3, deflate=True)
     temp.replace(preview)

@@ -11,6 +11,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 from preflight import check_fonts, require_single_page
+from pdf_metadata import document_metadata
+import pymupdf
 
 
 def main() -> None:
@@ -44,6 +46,9 @@ def main() -> None:
             name = issue + ("封面" if mode == "cover" else "扉页")
             pdf, png = tmp / f"{name}.pdf", tmp / f"{name}.png"
             subprocess.run(["node", str(HERE / "render.cjs"), str(html), str(pdf), str(png)], check=True)
+            with pymupdf.open(pdf) as doc:
+                doc.set_metadata(document_metadata(issue, "封面" if mode == "cover" else "扉页", doc.metadata.get("producer", "")))
+                doc.saveIncr()
             require_single_page([pdf])
             outputs.extend([pdf, png])
         for source in outputs:

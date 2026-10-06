@@ -11,4 +11,14 @@ function loadPlaywright() {
   }
   return require(path.join(__dirname, 'node_modules/playwright'));
 }
-module.exports = { loadPlaywright };
+// 使用锁定的 headless shell；Linux 默认 full hinting 会改变省略号的前进宽度。
+// 显式指定其他浏览器时仍保留相同参数，但不承诺与归档基线完全一致。
+function browserLaunchOptions(executablePath = process.env.CHROMIUM_EXECUTABLE) {
+  const options = { headless: true, args: ['--font-render-hinting=none'] };
+  if (executablePath) options.executablePath = executablePath;
+  return options;
+}
+async function launchChromium() {
+  return loadPlaywright().chromium.launch(browserLaunchOptions());
+}
+module.exports = { loadPlaywright, browserLaunchOptions, launchChromium };

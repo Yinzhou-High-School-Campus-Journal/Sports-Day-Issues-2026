@@ -1,7 +1,7 @@
 // 用 Chromium 把 HTML 打印成 PDF：node render.cjs 输入.html 输出.pdf
 const path = require('path');
 
-const { loadPlaywright } = require('../browser.cjs');
+const { launchChromium } = require('../browser.cjs');
 
 (async () => {
   const [input, output] = process.argv.slice(2);
@@ -9,11 +9,7 @@ const { loadPlaywright } = require('../browser.cjs');
     console.error('用法：node render.cjs 输入.html 输出.pdf');
     process.exit(2);
   }
-  const { chromium } = loadPlaywright();
-  // Use a locally installed Chromium when Playwright's browser bundle is unavailable.
-  const browser = await chromium.launch({
-    executablePath: process.env.CHROMIUM_EXECUTABLE || chromium.executablePath(),
-  });
+  const browser = await launchChromium();
   const page = await browser.newPage();
   const missingResources = [];
   page.on('requestfailed', (request) => {

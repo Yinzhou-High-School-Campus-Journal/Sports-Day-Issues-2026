@@ -35,6 +35,7 @@ OUT_DIR = HERE
 IMG_DIR = OUT_DIR / "images"
 sys.path.insert(0, str(HERE.parent))
 from preflight import check_fonts, require_single_page
+from pdf_metadata import document_metadata
 
 PT_PER_MM = 72 / 25.4
 LH = 17.35                      # 1 行
@@ -707,7 +708,6 @@ def finalize(issue: str, pdf_path: Path, uncounted: dict[int, str], note: str = 
     开头不计页数的页若是奇数张，在其后补一张空白页，让第 1 页仍落在右页（页眉的左右页也就不变）。
     uncounted 为 Chromium 输出里不计页数的页；返回（最终 PDF 里不计页数的页，插入的页在最终 PDF 里的页序）。"""
     cfg = ISSUES[issue]
-    title = " ".join(x for x in (cfg["journal"], issue, cfg.get("name", ""), "内页", note) if x)
     doc = pymupdf.open(pdf_path)
     final, inserted = dict(uncounted), []
     if cfg.get("title_page"):
@@ -727,13 +727,7 @@ def finalize(issue: str, pdf_path: Path, uncounted: dict[int, str], note: str = 
     # 书签：Chromium 按标题生成的书签随页面移动；前面补上扉页、人员表
     extra = [[1, final[n], n] for n in sorted(final) if final[n] in ("扉页", "人员表")]
     doc.set_toc(extra + doc.get_toc(simple=False))
-    doc.set_metadata({
-        "title": title,
-        "author": "鄞州中学媒体部",
-        "subject": "鄞州中学第四十四届暨鄞州蓝青高级中学第二十九届运动会校刊",
-        "creator": "排版/第二期/build.py（HTML → Chromium）",
-        "producer": doc.metadata.get("producer", ""),
-    })
+    doc.set_metadata(document_metadata(issue, "内页", doc.metadata.get("producer", ""), note))
     set_page_labels(doc, final)
     doc.save(pdf_path.with_suffix(".tmp.pdf"), garbage=3, deflate=True)
     doc.close()

@@ -11,7 +11,9 @@
 | `release.py` | 完整制作入口：字体检查、封面与扉页、各期内页与拼页。 |
 | `package.json`、`package-lock.json`、`requirements.txt` | 两期及封面共用的构建依赖。 |
 
-正式成品从[发行说明](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/tag/2026.9.29)获取；不再保存可重建的「历史输出」。
+历史发行文件从[发行说明](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/tag/2026.9.29)获取；不再保存可重建的「历史输出」。
+
+重建产物用于验证编辑部方案，不自动替代历史发行文件，也不重建校方后续修改的实际付印版。若发布重建版，应使用独立 Release 或明确区分的文件名，记录来源提交、浏览器与依赖版本、启动参数和校验值，并保留原发行文件及其校验记录。内容与换行一致不等于 PDF 字节或所有像素完全相同。
 
 ### 运行
 
@@ -38,9 +40,9 @@ python release.py
 python release.py 第一期
 ```
 
-回归检查可在本目录运行 `python -m unittest discover -s tests -v`。
+回归检查可在本目录运行 `python -m unittest discover -s tests -v`、`node --test tests/browser.test.cjs` 和 `node tests/check_browser_geometry.cjs`。最后一项会实际启动浏览器并检查仓库字体的省略号宽度，须先安装浏览器。
 
-Python 包版本固定在 `requirements.txt`，运行前检查实际版本；Playwright 及其依赖固定在 `package-lock.json`，默认使用[该版本配套的 Chromium](https://playwright.dev/docs/browsers)。封面也使用同一浏览器与虚拟环境，不再自动获取未固定版本的 `uv` 依赖或读取本机字体。输入字体由 `fonts/manifest.json` 校验。显式设置 `CHROMIUM_EXECUTABLE` 可测试其他浏览器，此时浏览器版本不在默认构建约束内。
+Python 包版本固定在 `requirements.txt`，运行前检查实际版本；Playwright 及其依赖固定在 `package-lock.json`，默认使用[该版本配套的 Chromium Headless Shell](https://playwright.dev/docs/browsers)（141.0.7390.37）。两期内页及封面共用浏览器启动配置，关闭字体微调（`--font-render-hinting=none`），避免 Linux 默认微调把 14 px 正文中的全角省略号推进宽度增至 15 px 而改变换行；抗锯齿仍保留。封面也使用同一浏览器与虚拟环境，不再自动获取未固定版本的 `uv` 依赖或读取本机字体。输入字体由 `fonts/manifest.json` 校验。显式设置 `CHROMIUM_EXECUTABLE` 可测试其他浏览器，此时浏览器版本不在默认构建约束内。
 
 运行会覆盖制作目录内的同名生成文件，来源稿、整理后的两期目录、发行链接和版本记录保持不变。封面或扉页缺失、字体版本不符及图片或样式无法载入时，程序报错退出。目录页码只在生成的内页中迭代；第二期另存 `第二期/第二期重建页码.md`，不写回稿件目录。
 
@@ -92,3 +94,7 @@ Python 包版本固定在 `requirements.txt`，运行前检查实际版本；Pla
 | `校园航拍_*_半岛第一飞手.jpg` | 半岛第一飞手《【航拍浙江】鄞州中学风采》 | 校园绘卷起始页，雏鸟 |
 
 半岛第一飞手不是学校账号，付印前最好征得作者同意，或换成学校自己的航拍。
+
+### PDF 导航与元数据
+
+两期及封面、扉页等输出使用 `pdf_metadata.py` 统一内部标题、作者、主题和制作程序字段，实际 PDF 生成器信息原样保留。标题格式为「校运会特刊 + 期次 + 刊名 + 输出类型」。书签按实际内容设置；前置页用中文逻辑标签，正文用与刊面一致的阿拉伯数字。第一期扉页不计刊面页码；第二期扉页、人员表、目录和空白页均不计刊面页码。
