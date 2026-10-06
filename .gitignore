@@ -10,6 +10,7 @@ __pycache__/
 排版/**/*.tmp
 排版/**/*.tmp.pdf
 排版/**/*.tmp.html
+排版/art预览/
 排版/第一期/*.html
 排版/第一期/*.pdf
 排版/第一期/*版面.json

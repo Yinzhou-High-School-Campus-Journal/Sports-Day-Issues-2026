@@ -26,13 +26,12 @@ from pathlib import Path
 import pymupdf
 from PIL import Image, ImageFilter, ImageOps
 
-import art
-
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 OUT_DIR = HERE
 IMG_DIR = OUT_DIR / "images"
 sys.path.insert(0, str(HERE.parent))
+import art
 from preflight import prepare_fonts, require_single_page, sources_unchanged
 from pdf_metadata import document_metadata, outline_from_html, set_page_labels
 
