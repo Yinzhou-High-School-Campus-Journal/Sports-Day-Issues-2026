@@ -2,20 +2,6 @@
 
 欢迎来到《校园运动会特别刊物》（简称校运会特刊）2026 年版的 GitHub 仓库。此版本与先前一样，分为两期，第一期付印版为《云途试骏》，第二期为《骋风逐曜》。注意，此仓库未经媒体部授权，为《鄞年・思叙》编辑部自行上传。因此，我们只能把技术范围内能上传／归档的所有文件都上传到此处。
 
-每期都有两个版本：
-
-- 付印版（文件名后缀 `Print`）：学校实际印刷、发放的版本；
-- 编辑部版（文件名后缀 `ED`）：《鄞年・思叙》编辑部的排版方案，第一期刊名误作《云图试骏》。
-
-### 下载
-
-全部成品见 [Releases](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/latest)：
-
-| 期刊 | 付印版 | 编辑部版 |
-| --- | --- | --- |
-| 第一期 | [内页](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/latest/download/Sports_Day_Issues_2026_No_1_Print.pdf)（51 页）、[封面](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/latest/download/Sports_Day_Issues_2026_No_1_Cover_Print.jpg) | [内页](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/latest/download/Sports_Day_Issues_2026_No_1_ED.pdf)（53 页，含扉页）、[封面](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/latest/download/Sports_Day_Issues_2026_No_1_Cover_ED.pdf) |
-| 第二期 | [内页](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/latest/download/Sports_Day_Issues_2026_No_2_Print.pdf)（59 页）、[封面](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/latest/download/Sports_Day_Issues_2026_No_2_Cover_Print.png) | [内页](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/latest/download/Sports_Day_Issues_2026_No_2_ED.pdf)（60 页，含扉页）、[封面](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/latest/download/Sports_Day_Issues_2026_No_2_Cover_ED.pdf) |
-
 ### 为什么要建立此仓库？
 
 自 2026 学年的学生会媒体部招新以来，媒体部一直面临着技术人手／水平不足的境况。因此，《鄞年・思叙》编辑部与主管媒体部的学生会副主席杨上喆一拍即合，决定让校刊编辑部参与《校园运动会特别刊物》的编辑工作。为了使下次潜在合作更为顺利，也为了将我们的幕后工作流程（如未刊发的稿件）展现给各位，特此建立该仓库。
@@ -38,7 +24,7 @@
 - 《鄞年・思叙》编辑部
    - 代表人物：沈泽厚
    - 主要负责：排版
-- 上期《校园运动会特别刊物》执行编辑
+- 上期编辑
    - 代表人物：段嘉睿
    - 主要负责：排版
 
@@ -46,46 +32,29 @@
 
 ```mermaid
 flowchart TD
-    S["投稿"] -->|"媒体部初审"| A["原始稿件"]
+    S["与校方对接、征稿"] -->|"校方提出要求；媒体部初审"| A["原始稿件"]
 
-    A -->|"上期执行编辑排版，添加图片、部分勘误；媒体部制作封面"| B["《云途试骏》实际付印版"]
+    A -->|"媒体部选稿、排序、做封面；上期编辑排版、校对"| B["《云途试骏》付印版"]
     A -->|"编辑部清洗"| C["清洗后的稿件"]
 
     C -->|"编辑部排版，添加图片与板块导读"| D["《云图试骏》编辑部版"]
-    C -->|"编辑部去掉《云途试骏》实际付印版已用的稿件"| E["剩余稿件"]
+    C -->|"编辑部去掉《云途试骏》已用的稿件"| E["剩余稿件"]
 
-    E -->|"编辑部排版，添加图片与板块导读"| F["《骋风逐曜》编辑部版"]
-    F -->|"校方用 WPS 修改"| G["《骋风逐曜》实际付印版"]
+    E -->|"媒体部排序；编辑部排版，添加图片与板块导读"| F["《骋风逐曜》编辑部版"]
+    F -->|"校方用 WPS 修改"| G["《骋风逐曜》付印版"]
+
+    B & G -->|"印刷；媒体部发放"| H["纸质版"]
+    B & G -->|"编辑部整理成品"| I["GitHub 仓库"]
+    D & F -->|"编辑部整理全流程"| I["GitHub 仓库"]
 ```
 
 注：
 
+- 除仓库整理与征稿，一切工作都在 2026 年 9 月 27 日夜至 29 日晨的不足 48 小时内完成
 - 《云途试骏》除封面外完全由上期编辑制作，其使用的是未经清洗的、业已遗失的原 DOCX / DOC / EML 稿件，班级与标点格式也不统一
 - 编辑部在《云途试骏》上提供的方案不幸落选（不只因为把刊名听成了《云图试骏》），但由于 AI（Claude Opus 5.5 与 GPT-6.1 Sol）的速度与质量优势，成功进行了《骋风逐曜》的制作
 - 编辑部提交《骋风逐曜》最终版本时，Claude 的 Session 配额已经耗尽，又受时间所限，编辑部无法再修改，校方便用 WPS 直接修改了编辑部的 PDF 后付印（付印版 PDF 中留有 WPS 的编辑痕迹）
-- 综上，由于来源混乱，本仓库只能采用编辑部版本进行整理，实际付印版只能在 Releases 中直接获取。[各版本的目录与比较](#版本区别)为最后整理，仅供参考。
-
-### 实际付印版的工作流程
-
-- [x] 与校方对接
-- [x] 征稿
-- [x] 校方对稿件提出要求
-- [x] 媒体部初审稿件
-- [x] 《云途试骏》封面制作
-- [x] 选择《云途试骏》入选稿件
-- [x] 决定《云途试骏》稿件顺序
-- [x] 《云途试骏》排版
-- [x] 《云途试骏》校对、修改
-- [x] 决定《骋风逐曜》稿件顺序
-- [x] 《云途试骏》印刷
-- [x] 《骋风逐曜》排版
-- [x] 《骋风逐曜》校对、修改
-- [x] 《骋风逐曜》印刷
-- [x] 《云途试骏》印刷纸质版发放
-- [x] 《骋风逐曜》印刷纸质版发放
-- [x] GitHub 仓库整理、归档
-
-注：除仓库整理与征稿，一切工作都在 2026 年 9 月 27 日夜至 29 日晨的不足 48 小时内完成。
+- 综上，由于来源混乱，本仓库只能采用编辑部版本进行整理，实际付印版只能在 [Releases](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/latest) 中直接获取。[各版本的目录与比较](#版本区别)为最后整理，仅供参考。
 
 ### 文件夹与命名规则
 
@@ -106,7 +75,7 @@ flowchart TD
 
 班级沿用四位编号：2026—2027 学年的高一、高二、高三分别为 26、25、24 开头；「高三（1）班」记为 2401。
 
-由于当时编辑流程混乱，有 16 篇稿件同时收入两期编辑部版（目录中注「同见第一期」或「同见第二期」）。两期各保留一份副本，文字按各期编辑部版，其中 10 篇有个别字句不同。这不表示付印版两期重复刊载，付印版的篇目以其目录为准。
+由于当时编辑流程混乱，有 16 篇稿件同时收入两期编辑部版（目录中注「同见第一期」或「同见第二期」）。两期各保留一份副本，文字与各自的编辑部版 PDF 一致。其中 10 篇在编第二期时改过个别字句，第一期的副本没有跟着改，所以两份不完全相同。这不表示付印版两期重复刊载，付印版的篇目以其目录为准。
 
 ### 版本区别
 
