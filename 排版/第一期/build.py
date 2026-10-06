@@ -8,7 +8,7 @@
 2. 调用 Chromium（render.cjs）打印成 PDF；
 3. 从 PDF 书签读出每篇的起止页，回填目录页码；量出每篇末页剩下几行，
    按 FILLS 的配置在留白处放插图（线描按实际尺寸生成，照片按尺寸裁切），再排，直到版面稳定；
-4. 写入 PDF 元数据，并另存一份拼上封面、扉页的预览版。
+4. 保存正文 PDF，拼入扉页生成完整内页，再拼封面生成预览版。
 """
 from __future__ import annotations
 
@@ -30,8 +30,10 @@ import art
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-OUT_DIR = HERE.parent / "历史输出" / "第一期"
+OUT_DIR = HERE
 IMG_DIR = OUT_DIR / "images"
+sys.path.insert(0, str(HERE.parent))
+from preflight import check_fonts, require_single_page
 
 PT_PER_MM = 72 / 25.4
 LH = 17.35                      # 1 行
@@ -584,11 +586,21 @@ def free_lines(pdf_path: Path, spans: dict[str, tuple[int, int]]) -> dict[str, i
     return out
 
 
-def finalize(issue: str, pdf_path: Path) -> Path:
+def set_page_labels(doc: pymupdf.Document, prefixes: list[str]) -> None:
+    # 与第二期相同：中文前缀写作带 BOM 的 UTF-16BE，避免阅读器乱码。
+    nums = [f"{n} <</P <FEFF{label.encode('utf-16-be').hex().upper()}>>>"
+            for n, label in enumerate(prefixes)]
+    nums.append(f"{len(prefixes)} <</S /D /St 1>>")
+    doc.xref_set_key(doc.pdf_catalog(), "PageLabels", f"<</Nums [{' '.join(nums)}]>>")
+
+
+def finalize(issue: str, pdf_path: Path) -> tuple[Path, Path]:
     cfg = ISSUES[issue]
+    cover, title_page = [ROOT / name for name in cfg["cover"]]
+    require_single_page([cover, title_page])
     doc = pymupdf.open(pdf_path)
     doc.set_metadata({
-        "title": f"{cfg['journal']} {issue} 内页",
+        "title": f"{cfg['journal']} {issue} 正文",
         "author": "鄞州中学媒体部",
         "subject": "鄞州中学第四十四届暨鄞州蓝青高级中学第二十九届运动会校刊",
         "creator": "排版/第一期/build.py（HTML → Chromium）",
@@ -598,23 +610,30 @@ def finalize(issue: str, pdf_path: Path) -> Path:
     doc.close()
     pdf_path.with_suffix(".tmp.pdf").replace(pdf_path)
 
-    # 拼上封面和扉页的预览版
+    # 发布内页 = 后来独立制作的扉页 + 原正文；正文的纸面页码不变。
+    inner_path = OUT_DIR / f"{issue}内页.pdf"
+    with pymupdf.open() as out:
+        with pymupdf.open(title_page) as title, pymupdf.open(pdf_path) as body:
+            out.insert_pdf(title)
+            out.insert_pdf(body)
+            out.set_toc([[1, "扉页", 1]] + [[t[0], t[1], t[2] + 1] for t in body.get_toc()])
+            out.set_metadata({**body.metadata, "title": f"{cfg['journal']} {issue} 内页"})
+        set_page_labels(out, ["扉页"])
+        temp = inner_path.with_suffix(".tmp.pdf")
+        out.save(temp, garbage=3, deflate=True)
+    temp.replace(inner_path)
+
     preview = OUT_DIR / f"{issue}（含封面预览）.pdf"
-    out = pymupdf.open()
-    offset = 0
-    for c in cfg.get("cover", []):
-        cp = ROOT / c
-        if cp.exists():
-            with pymupdf.open(cp) as cd:
-                out.insert_pdf(cd)
-                offset += cd.page_count
-    with pymupdf.open(pdf_path) as inner:
-        toc = inner.get_toc(simple=False)
+    with pymupdf.open() as out, pymupdf.open(cover) as cd, pymupdf.open(inner_path) as inner:
+        out.insert_pdf(cd)
         out.insert_pdf(inner)
-    out.set_toc([[t[0], t[1], t[2] + offset] for t in toc])
-    out.set_metadata({"title": f"{cfg['journal']} {issue}（含封面预览）", "author": "鄞州中学媒体部"})
-    out.save(preview, garbage=3, deflate=True)
-    return preview
+        out.set_toc([[1, "封面", 1]] + [[t[0], t[1], t[2] + 1] for t in inner.get_toc()])
+        set_page_labels(out, ["封面", "扉页"])
+        out.set_metadata({"title": f"{cfg['journal']} {issue}（含封面预览）", "author": "鄞州中学媒体部"})
+        temp = preview.with_suffix(".tmp.pdf")
+        out.save(temp, garbage=3, deflate=True)
+    temp.replace(preview)
+    return inner_path, preview
 
 
 def main() -> None:
@@ -622,9 +641,11 @@ def main() -> None:
     ap.add_argument("issue", nargs="?", default="第一期")
     args = ap.parse_args()
     issue = args.issue
+    check_fonts()
+    require_single_page([ROOT / name for name in ISSUES[issue]["cover"]])
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     html_path = OUT_DIR / f"{issue}.html"
-    pdf_path = OUT_DIR / f"{issue}内页.pdf"
+    pdf_path = OUT_DIR / f"{issue}正文.pdf"
     pieces = {p.pid: p for p in all_pieces(issue)}
 
     pages: dict[str, int] = {}
@@ -672,12 +693,12 @@ def main() -> None:
     report = []
     for pid, (a, b) in spans.items():
         title = "目录" if pid == "toc" else pieces[pid].title
-        report.append({"pid": pid, "title": title, "pages": [a, b], "free_lines": free[pid],
+        report.append({"pid": pid, "title": title, "pages": [a + 1, b + 1], "page_no": a, "free_lines": free[pid],
                        "fills": fills.get(pid, {})})
     (OUT_DIR / f"{issue}版面.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
     total = pymupdf.open(pdf_path).page_count
-    preview = finalize(issue, pdf_path)
-    print(f"完成：{pdf_path.name}（{total} 页），预览：{preview.name}")
+    inner, preview = finalize(issue, pdf_path)
+    print(f"完成：{pdf_path.name}（{total} 页），{inner.name}（{total + 1} 页），预览：{preview.name}（{total + 2} 页）")
     for r in report:
         flag = "  ← 留白多" if r["free_lines"] >= 9 else ""
         print(f"  {r['pages'][0]:>3}–{r['pages'][1]:<3} 末页余 {r['free_lines']:>3} 行  {r['title']}{flag}")

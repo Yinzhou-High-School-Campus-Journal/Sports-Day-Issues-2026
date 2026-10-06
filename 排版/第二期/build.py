@@ -8,7 +8,7 @@
 2. 调用 Chromium（render.cjs）打印成 PDF；
 3. 从 PDF 书签读出每篇的起止页，回填目录页码；量出每篇末页剩下几行，
    按 FILLS 的配置在留白处放插图（线描按实际尺寸生成，照片按尺寸裁切），再排，直到版面稳定；
-4. 写入 PDF 元数据和页码标签，另出一份页码用齐线数字的对照版，并把页码写回稿件目录（目录.md）。
+4. 写入 PDF 元数据和页码标签，另出一份页码用齐线数字的对照版；重建页码单独输出，不覆盖来源目录。
 """
 from __future__ import annotations
 
@@ -31,8 +31,10 @@ import fonts
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-OUT_DIR = HERE.parent / "历史输出" / "第二期"
+OUT_DIR = HERE
 IMG_DIR = OUT_DIR / "images"
+sys.path.insert(0, str(HERE.parent))
+from preflight import check_fonts, require_single_page
 
 PT_PER_MM = 72 / 25.4
 LH = 17.35                      # 1 行
@@ -752,29 +754,28 @@ LINING_CSS = ("@page { @bottom-center { font-variant-numeric: lining-nums; } }\n
               ".toc li .p { font-variant-numeric: lining-nums tabular-nums; }\n")
 
 
-def write_toc_md(issue: str, pages: dict[str, int], uncounted: dict[int, str]) -> None:
-    """把印出来的页码写回稿件目录（期刊目录下的 目录.md）。uncounted 为拼好的 PDF 里不计页数的页。"""
+def write_build_index(issue: str, pages: dict[str, int], uncounted: dict[int, str]) -> None:
+    """只输出本次重建页码，来源目录及其发行、版本导航由人工维护。"""
     cfg = ISSUES[issue]
     front, groups, back = load_issue(issue)
     names = "、".join(n for n, _ in groups)
     lead = "、".join(uncounted[n] for n in sorted(uncounted))
-    # 这份目录也同步到只放稿件的 print 分支，所以不引用排版目录里的文件
-    out = [f"# {issue}稿件目录", "",
+    out = [f"# {issue}重建页码", "",
            f"按刊登顺序排列；页码为最新一次排版印出来的页码：内页开头的{lead}不印页码、不计页数，"
            f"其后的第一页为第 1 页。板块名印作{names}（目录名与刊载板块名一致）；各板块起始页的导读在各板块目录的 `0_导读.md`，"
-           f"人员表在 [`{cfg['staff']}`](<{cfg['staff']}>)。", ""]
+           f"人员表在 [`{cfg['staff']}`](<{rel(ROOT / issue / cfg['staff'])}>)。", ""]
 
     def line(p: Piece) -> str:
         who = f" — {p.cls} {p.name}".rstrip() if p.name else ""
-        return f"[《{p.title}》](<{p.key}>){who}，第 {pages.get(p.pid, '?')} 页"
+        return f"[《{p.title}》](<{rel(p.path)}>){who}，第 {pages.get(p.pid, '?')} 页"
     out += [line(p) for p in front]
     for sec, items in groups:
-        out += [f"## {sec}", ""]
+        out += [f"### {sec}", ""]
         out += [f"{k}. {line(p)}" for k, p in enumerate([x for x in items if x.kind == "article"], 1)]
         out.append("")
     for p in back:
-        out += [f"## {p.title}", "", line(p), ""]
-    (ROOT / issue / "目录.md").write_text("\n".join(out).rstrip() + "\n", encoding="utf-8")
+        out += [f"### {p.title}", "", line(p), ""]
+    (OUT_DIR / f"{issue}重建页码.md").write_text("\n".join(out).rstrip() + "\n", encoding="utf-8")
 
 
 def main() -> None:
@@ -784,6 +785,9 @@ def main() -> None:
     args = ap.parse_args()
     issue = args.issue
     cfg = ISSUES[issue]
+    check_fonts()
+    require_single_page([ROOT / cfg["title_page"], HERE.parent / "封面" / "第一期封面.pdf",
+                         HERE.parent / "封面" / "第二期封面.pdf"])
     OPTIONS, FILLS = cfg.get("options", {}), cfg.get("fills", {})
     IMG_DIR = OUT_DIR / "images"
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -859,7 +863,7 @@ def main() -> None:
     render_pdf(alt_html, alt_pdf)
     alt_html.unlink()
     finalize(issue, alt_pdf, skip, "（页码用齐线数字）")
-    write_toc_md(issue, pages, final)
+    write_build_index(issue, pages, final)
     # 删掉这一版没用到的图（改名、撤稿后留下的旧图）
     used = set(re.findall(r'src="([^"]+)"', html_path.read_text(encoding="utf-8")))
     for f in IMG_DIR.rglob("*"):

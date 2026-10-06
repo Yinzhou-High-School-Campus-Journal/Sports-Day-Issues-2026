@@ -16,9 +16,10 @@ Issue 1 (《云图试骏》) only; issue 2 (《骋风逐曜》) has its own desi
 Rebuild everything with ./build.sh
 """
 import os, sys, html, math, random
+from pathlib import Path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FONTS = os.path.expanduser('~/Library/Fonts')
+FONTS = os.path.normpath(os.path.join(HERE, '..', 'fonts'))
 OPT = dict(a.split('=', 1) for a in sys.argv[1:] if '=' in a)
 MODE = OPT.get('mode', 'cover')
 if MODE == 'title':          # the simplified scene for the vignette
@@ -406,11 +407,10 @@ else:
 
 # ------------------------------------------------------------------ fonts / css
 def face(fam, path, extra=''):
-    return f"@font-face{{font-family:'{fam}';src:url('file://{path}');{extra}}}"
+    return f"@font-face{{font-family:'{fam}';src:url('{Path(path).resolve().as_uri()}');{extra}}}"
 
 faces = [face('Mast', os.path.join(FONTS, 'FW筑紫E老明朝.TTF')),
          face('FZHFS', os.path.join(FONTS, 'FZHengFSJF-M.TTF'), 'font-weight:500;'),
-         face('ZQFS', os.path.join(FONTS, 'ZhuqueFangsong-Regular.ttf')),
          face('Seal', os.path.join(FONTS, '金陵刻经W.ttf'))]
 if os.path.isdir(LOCAL) and OPT.get('fonts', 'local') == 'local':
     for w in (600, 700, 900):
@@ -418,9 +418,10 @@ if os.path.isdir(LOCAL) and OPT.get('fonts', 'local') == 'local':
     for wd, wt in [(100, 500), (100, 700)]:
         faces.append(face('NSerif', f'{LOCAL}/CoverLatin-w{wd:g}-{wt}.ttf', f'font-weight:{wt};font-stretch:{wd:g}%;'))
 else:
-    for w, fn in [(600, 'SemiBold'), (700, 'Bold'), (900, 'Heavy')]:
-        faces.append(face('SHS', os.path.join(FONTS, f'SourceHanSerifSC-{fn}.otf'), f'font-weight:{w};'))
-    faces.append(face('NSerif', os.path.join(FONTS, 'NotoSerif[wdth,wght].ttf'), 'font-weight:100 900;font-stretch:62.5% 100%;'))
+    for w in (600, 700, 900):
+        faces.append(face('SHS', os.path.join(FONTS, '封面', f'CoverSong-{w}.ttf'), f'font-weight:{w};'))
+    for wt in (500, 700):
+        faces.append(face('NSerif', os.path.join(FONTS, '封面', f'CoverLatin-w100-{wt}.ttf'), f'font-weight:{wt};'))
 
 CSS = '\n'.join(faces) + f"""
 @page {{ size: {page_w}mm {page_h}mm; margin: 0; }}
@@ -431,18 +432,18 @@ svg.art {{ position: absolute; left: 0; top: 0; width: {page_w}mm; height: {page
 .abs {{ position: absolute; white-space: nowrap; }}
 .c {{ transform: translate(-50%, -50%); text-align: center; }}
 .mast {{ font-family: 'Mast'; text-align: center; }}
-.top {{ font-family: 'FZHFS', 'ZQFS'; font-weight: 500; font-size: 12pt; letter-spacing: .16em; }}
+.top {{ font-family: 'FZHFS'; font-weight: 500; font-size: 12pt; letter-spacing: .16em; }}
 .issue {{ font-family: 'SHS'; font-weight: 900; font-size: 17pt; letter-spacing: .4em; padding-left: .4em; }}
 .issue .yr {{ font-family: 'NSerif'; font-weight: 700; font-size: 20pt; letter-spacing: .06em; margin-left: .2em; }}
 .issue.t {{ font-size: 14pt; }}
 .issue.t .yr {{ font-size: 16.5pt; }}
-.quote {{ font-family: 'FZHFS', 'ZQFS'; font-weight: 500; font-size: 12.5pt; line-height: 1.75; letter-spacing: .1em; }}
-.cite {{ font-family: 'FZHFS', 'ZQFS'; font-weight: 500; font-size: 12pt; letter-spacing: .05em; }}
-.sig {{ font-family: 'FZHFS', 'ZQFS'; font-weight: 500; font-size: 12.5pt; letter-spacing: .22em; line-height: 1;
+.quote {{ font-family: 'FZHFS'; font-weight: 500; font-size: 12.5pt; line-height: 1.75; letter-spacing: .1em; }}
+.cite {{ font-family: 'FZHFS'; font-weight: 500; font-size: 12pt; letter-spacing: .05em; }}
+.sig {{ font-family: 'FZHFS'; font-weight: 500; font-size: 12.5pt; letter-spacing: .22em; line-height: 1;
   writing-mode: vertical-rl; text-orientation: upright; transform: translateX(-50%); }}
 .seal {{ font-family: 'Seal'; font-size: 16pt; line-height: 1; letter-spacing: .02em; color: #fff;
   writing-mode: vertical-rl; text-orientation: upright; transform: translateX(-50%); }}
-.credit {{ font-family: 'FZHFS', 'ZQFS'; font-weight: 500; font-size: 13pt; letter-spacing: .35em; padding-left: .35em; }}
+.credit {{ font-family: 'FZHFS'; font-weight: 500; font-size: 13pt; letter-spacing: .35em; padding-left: .35em; }}
 .lanename {{ font-family: 'SHS'; font-weight: 900; font-size: 13pt; letter-spacing: .16em; padding-left: .16em; }}
 """
 

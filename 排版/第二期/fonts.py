@@ -8,24 +8,23 @@ Chromium 打印 PDF 时，CFF 轮廓的 OTF 和可变字体会被转成 Type 3 �
   Noto Serif  ← Noto Serif 可变字体：350 / 500 / 600 / 700、斜体 350（正文里夹排的西文、数字）
 
 以下商业字体已随项目收录在 fonts/：
-  方正恒仿宋：FZHengFSJF-R.TTF、FZHengFSJF-M.TTF（缺少时退回开源的朱雀仿宋 ZhuqueFangsong-Regular.ttf）
+  方正恒仿宋：FZHengFSJF-R.TTF、FZHengFSJF-M.TTF（输入版本由 manifest.json 固定）
   Constantia：CONSTAN.TTF、CONSTANB.TTF、CONSTANI.TTF、CONSTANZ.TTF（成段西文、页码等独立西文）
 """
 from __future__ import annotations
 
-import urllib.request
+import sys
 from pathlib import Path
 
 from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from preflight import check_fonts
+
 FONTS = Path(__file__).resolve().parents[1] / "fonts"
 
-SOURCES = {
-    "NotoSerifSC-VF.ttf": "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Serif/Variable/TTF/Subset/NotoSerifSC-VF.ttf",
-    "NotoSerif-VF.ttf": "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserif/NotoSerif%5Bwdth%2Cwght%5D.ttf",
-    "NotoSerif-Italic-VF.ttf": "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserif/NotoSerif-Italic%5Bwdth%2Cwght%5D.ttf",
-}
+SOURCES = ("NotoSerifSC-VF.ttf", "NotoSerif-VF.ttf", "NotoSerif-Italic-VF.ttf")
 
 # 输出文件名 → (源可变字体, 轴坐标, 家族名, 字重名)
 INSTANCES = {
@@ -152,11 +151,7 @@ def set_names(font: TTFont, family: str, style: str) -> None:
 
 def main() -> None:
     FONTS.mkdir(exist_ok=True)
-    for name, url in SOURCES.items():
-        dest = FONTS / name
-        if not dest.exists():
-            print("下载", name)
-            urllib.request.urlretrieve(url, dest)
+    check_fonts()
     for out, (src, axes, family, style) in INSTANCES.items():
         dest = FONTS / out
         if dest.exists():

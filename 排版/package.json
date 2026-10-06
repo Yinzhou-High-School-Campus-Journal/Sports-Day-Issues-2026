@@ -1,0 +1,19 @@
+{
+  "name": "sports-day-issues-2026-layout",
+  "version": "1.0.0",
+  "private": true,
+  "description": "两期编辑部方案的封面、扉页与内页制作",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "covers": "python3 封面/build.py",
+    "build": "python3 release.py",
+    "build:1": "python3 release.py 第一期",
+    "build:2": "python3 release.py 第二期"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  },
+  "packageManager": "npm@11.5.2"
+}

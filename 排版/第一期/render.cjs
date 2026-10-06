@@ -1,13 +1,7 @@
 // 用 Chromium 把 HTML 打印成 PDF：node render.cjs 输入.html 输出.pdf
 const path = require('path');
 
-function loadPlaywright() {
-  const candidates = ['playwright', 'playwright-core', '/opt/node22/lib/node_modules/playwright'];
-  for (const name of candidates) {
-    try { return require(name); } catch (e) { /* 试下一个 */ }
-  }
-  throw new Error('找不到 Playwright：请先在 ' + __dirname + ' 目录运行 npm install');
-}
+const { loadPlaywright } = require('../browser.cjs');
 
 (async () => {
   const [input, output] = process.argv.slice(2);

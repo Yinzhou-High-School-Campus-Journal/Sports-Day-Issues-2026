@@ -1,4 +1,4 @@
-### 封面与扉页制作
+# 封面与扉页制作
 
 两期扉页和封面使用同一套制作程序；扉页是在内页完成后另行制作、拼入的内容。
 
@@ -6,14 +6,23 @@
 | --- | --- |
 | `make_pages.py` | 第一期《云图试骏》封面与扉页 HTML。 |
 | `make_issue2.py` | 第二期《骋风逐曜》封面与扉页 HTML。 |
-| `fontprep.py` | 将封面用到的字体转成静态 TrueType 子集。 |
-| `build.sh` | 调用上面程序，以 Chrome 输出 PDF 与 PNG。 |
+| `fontprep.py` | 从仓库静态字体生成封面用字子集。 |
+| `render.cjs` | 以共用的 Playwright 与 Chromium 输出 PDF 和 PNG，检查资源是否载入。 |
+| `build.py` | 依次生成两期的封面与扉页，全部成功后再替换输出。 |
+| `build.sh` | 兼容原有命令，转到 `build.py`。 |
+
+### 运行
+
+先按[通用说明](<../README.md#运行>)安装依赖并启用虚拟环境，然后在仓库根目录执行：
 
 ```bash
-cd 排版/封面
-./build.sh
+python 排版/封面/build.py
 ```
 
-需要 `python3`、`uv` 和 Google Chrome，可用 `CHROMIUM_EXECUTABLE` 指定浏览器路径。默认读取制作机器 `~/Library/Fonts` 中的字体：思源宋体 SemiBold／Bold／Heavy、Noto Serif 可变字体、方正恒仿宋、FW筑紫E老明朝及金陵刻经W；朱雀仿宋作为备用。字体未齐时先补足本机字体。
+全部字体取自[共享字体目录](<../fonts/README.md>)；不依赖制作机器的字体安装目录、Google Chrome 或 `uv`。需要复用第一期封面线稿或拼入扉页时，内页程序读取本目录的生成文件。
 
-输出默认放在本目录，或以 `OUT` 指定另一个已有或新建位置。PDF、PNG、临时 HTML 与字体子集均不提交；正式成品只在 Release 提供。生成的 `第一期封面.pdf`、两期 `扉页.pdf` 可供内页脚本拼页或封面线稿复用。
+### 输出
+
+本目录默认保存两期的 `封面.pdf`、`扉页.pdf` 和对应 PNG，共 4 PDF、4 PNG；不生成出血版。可用 `OUT` 指定其他输出位置，但内页脚本仍按本目录的默认文件名读取，使用完整制作入口时应保持默认位置。
+
+临时 HTML 与字体子集由程序自动清理，PDF 和 PNG 不提交；正式成品仍由 Release 提供。

@@ -1,35 +1,52 @@
-### 排版
+# 排版
 
-本目录保存编辑部方案的制作程序与历史输出。源码按两期及封面制作分开，照片原件仍在仓库的 `资产/`。
+本目录保存两期编辑部方案的完整制作程序。原稿照片仍在仓库的 `资产/`，生成的 PDF、HTML、版面统计与配图缓存直接放在各自制作目录，由 Git 忽略。
 
 | 位置 | 内容 |
 | --- | --- |
 | [第一期](<第一期/README.md>) | 《云图试骏》内页源码与本期版式说明。 |
 | [第二期](<第二期/README.md>) | 《骋风逐曜》内页源码与本期拼页说明。 |
 | [封面](<封面/README.md>) | 两期封面与扉页的共同制作源码。 |
-| [fonts](<fonts/README.md>) | 两期共用的字体及许可。 |
-| `历史输出/第一期/`、`第二期/` | 制作阶段的 HTML、PDF、版面 JSON 和配图缓存。 |
+| [fonts](<fonts/README.md>) | 共用字体、许可与输入文件校验值。 |
+| `release.py` | 完整制作入口：字体检查、封面与扉页、各期内页与拼页。 |
+| `package.json`、`package-lock.json`、`requirements.txt` | 两期及封面共用的构建依赖。 |
 
-Release 已提供的封面及内页不在资产目录重复存放，生成预览也不提交。历史输出是制作过程记录，正式文件从[发行说明](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/tag/2026.9.29)获取。
+正式成品从[发行说明](https://github.com/Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026/releases/tag/2026.9.29)获取；不再保存可重建的「历史输出」。
 
-#### 运行
+### 运行
 
-内页需要 Python 3 的 `pymupdf`、`pillow`、`fonttools`，以及 Node.js、Playwright 和 Chromium：
+验证环境为 Python 3.12.14、Node.js 24.19.0 与 npm 11.5.2；版本文件位于本目录。使用 Python 3.12 与 Node.js 24，在仓库根目录执行一次安装：
 
 ```bash
-pip install pymupdf pillow fonttools
-cd 排版/第一期                 # 第二期使用 排版/第二期
-npm install
+cd 排版
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+npm ci
 npx playwright install chromium
-python3 fonts.py
-python3 build.py 第一期        # 第二期参数为 第二期
 ```
 
-若需要封面、扉页，先按[封面制作说明](<封面/README.md>)生成。内页脚本在对应 `历史输出/` 中重建文件；第二期还会把重建页码写回 `第二期/目录.md`。运行会覆盖这些制作记录，请先保存需要的旧文件。这里不设额外的构建目录。
+完整制作两期：
 
-两期源码中 `build.py` 负责稿件、HTML、拼页及版面统计，`art.py` 生成线描，`render.cjs` 调用浏览器，`style.css` 定义版式；`fonts.py` 准备共享字体。
+```bash
+python release.py
+```
 
-#### 稿件写法
+只制作一期，参数使用 `第一期` 或 `第二期`：
+
+```bash
+python release.py 第一期
+```
+
+回归检查可在本目录运行 `python -m unittest discover -s tests -v`。
+
+Python 包版本固定在 `requirements.txt`，运行前检查实际版本；Playwright 及其依赖固定在 `package-lock.json`，默认使用[该版本配套的 Chromium](https://playwright.dev/docs/browsers)。封面也使用同一浏览器与虚拟环境，不再自动获取未固定版本的 `uv` 依赖或读取本机字体。输入字体由 `fonts/manifest.json` 校验。显式设置 `CHROMIUM_EXECUTABLE` 可测试其他浏览器，此时浏览器版本不在默认构建约束内。
+
+运行会覆盖制作目录内的同名生成文件，来源稿、整理后的两期目录、发行链接和版本记录保持不变。封面或扉页缺失、字体版本不符及图片或样式无法载入时，程序报错退出。目录页码只在生成的内页中迭代；第二期另存 `第二期/第二期重建页码.md`，不写回稿件目录。
+
+两期的 `build.py` 负责稿件、HTML、拼页及统计，`art.py` 生成线描，`render.cjs` 调用浏览器，`style.css` 定义版式；`fonts.py` 准备共享字体的静态字重。
+
+### 稿件写法
 
 ```markdown
 # 标题
@@ -53,14 +70,14 @@ python3 build.py 第一期        # 第二期参数为 第二期
 ![说明](../../资产/图片.jpeg)
 ```
 
-- 文中出现的第一级 `#` 标题排成中标题，第二级排成小标题。
+- 文件标题用一级，正文小节从三级开始。
 - 整篇都是诗行时，单栏居中排。
 - 文末连着两张以上的图，排成通栏并排的图组。
 - 引号用「」，嵌套用『』；破折号 `——`、省略号 `……`。
 - 各板块目录下的 `0_导读.md` 是板块起始页的导读。
 - `人员表.md` 每行「职务：姓名　姓名」，姓名之间用全角空格。
 
-#### 配图
+### 配图
 
 `build.py` 里的 `FILLS` 按文章配置留白插图：`art` 为 `art.py` 的图样名（云海、银杏、折纸老虎、鼓楼、垂柳、墨勾山脊等，均按文章内容选），`photo` 为照片；钟楼、校园实景这类画不好的，一律用视频截图。第一遍排版后量出每篇末页还空几行，插图高度按剩余行数自动取整；`where: "head"` 的图放在作者行下方，用于把只溢出几行的文章撑成匀称的两页。
 

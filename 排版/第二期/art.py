@@ -2296,7 +2296,7 @@ def make(kind: str, w: float, h: float, **kw) -> str:
 
 if __name__ == "__main__":
     import sys
-    out = HERE.parent / "历史输出" / "第二期" / "images" / "art"
+    out = HERE / "images" / "art"
     out.mkdir(parents=True, exist_ok=True)
     for kind in (sys.argv[1:] or PATTERNS):
         (out / f"preview-{kind}.svg").write_text(make(kind, 441, 260), encoding="utf-8")
