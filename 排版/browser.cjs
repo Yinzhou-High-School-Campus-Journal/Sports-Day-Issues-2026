@@ -1,7 +1,8 @@
 // 只使用 npm ci 安装的锁定依赖；两个内页程序和封面程序共用。
 const path = require('path');
 function loadPlaywright() {
-  const expected = require('./package.json').devDependencies.playwright;
+  // 与 package-lock.json 里锁定的确切版本比较（package.json 里可能写成 ^1.56.1 这类范围）
+  const expected = require('./package-lock.json').packages['node_modules/playwright'].version;
   const packagePath = path.join(__dirname, 'node_modules/playwright/package.json');
   let actual;
   try { actual = require(packagePath).version; }

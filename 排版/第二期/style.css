@@ -1,5 +1,5 @@
 /* ==========================================================================
-   《云图试骏》内页样式
+   《骋风逐曜》内页样式
    A4；版心 155.6 mm × 245 mm = 双栏各 20 字 × 40 行（10.5 pt / 17.35 pt）
    ========================================================================== */
 
@@ -7,9 +7,8 @@
    正文夹排的西文、数字：Noto Serif 350（与思源宋体 Regular 字重相近）
    成段西文（歌词等）与独立西文（页码、班级号）：Constantia
    中文：思源宋体 SC，Regular / Medium / SemiBold / Bold
-   作者、页眉、导读：方正恒仿宋；本机没有时退回朱雀仿宋
-   思源宋体、Noto Serif 由 fonts.py 实例化成静态 TrueType（避免 PDF 里出现 Type 3 字体）；
-   Constantia、方正恒仿宋按项目授权收录在 fonts/。
+   作者、页眉、导读：方正恒仿宋
+   思源宋体、Noto Serif 由 preflight.py 实例化成静态 TrueType（避免 PDF 里出现 Type 3 字体）。
    各字重按 font-weight 区间声明：正文写 font-weight: 350 时，
    中文落在 Regular（100–450），西文取 350 的实例。                         */
 
@@ -126,7 +125,7 @@
   --lh: 17.35pt;     /* 行距 = 1 行 */
   --gap: 21pt;       /* 栏间距、首行缩进 */
   --song: "YZ Latin", "YZ Song", serif;
-  --fang: "YZ Latin", "YZ FangSong Supp", "YZ FangSong", "YZ Song", serif;   /* Supp：仿宋缺字的补字，build.py 生成 */
+  --fang: "YZ Latin", "YZ FangSong", "YZ Song", serif;
   --western: "YZ Western", "YZ Song", serif;          /* 成段西文、独立西文 */
 }
 

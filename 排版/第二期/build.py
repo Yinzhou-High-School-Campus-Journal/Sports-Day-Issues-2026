@@ -8,7 +8,7 @@
 2. 调用 Chromium（render.cjs）打印成 PDF；
 3. 从 PDF 书签读出每篇的起止页，回填目录页码；量出每篇末页剩下几行，
    按 FILLS 的配置在留白处放插图（线描按实际尺寸生成，照片按尺寸裁切），再排，直到版面稳定；
-4. 写入 PDF 元数据和页码标签，另出一份页码用齐线数字的对照版；重建页码单独输出，不覆盖来源目录。
+4. 拼上扉页，写入书签、PDF 元数据和页码标签。
 """
 from __future__ import annotations
 
@@ -27,15 +27,14 @@ import pymupdf
 from PIL import Image, ImageFilter, ImageOps
 
 import art
-import fonts
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 OUT_DIR = HERE
 IMG_DIR = OUT_DIR / "images"
 sys.path.insert(0, str(HERE.parent))
-from preflight import check_fonts, require_single_page
-from pdf_metadata import document_metadata
+from preflight import prepare_fonts, require_single_page, sources_unchanged
+from pdf_metadata import document_metadata, outline_from_html, set_page_labels
 
 PT_PER_MM = 72 / 25.4
 LH = 17.35                      # 1 行
@@ -67,17 +66,17 @@ OPTIONS_2: dict[str, dict] = {
 #   grow:  True 表示放大文末原有的图组来填满，不另加图
 #   min:   剩余行数少于此值时不放（默认 9）
 #   max:   图最多占几行（视频截图按原比例取高，免得裁掉太多）；anchor: "bottom" 时多出的行留在图上方，图沉到页底
-# 第一期未刊发的五板块版（ShenZehou 分支）里画过、拍过的图，内容合适的直接沿用。
+# 第一期编辑部版里画过、拍过的图，内容合适的直接沿用。
 FILLS_2: dict[str, list[dict]] = {
     # 板块起始页。航拍原片左上角、开幕式原片右上角有水印，都裁掉
-    "1_红砖絮语/0_导读.md": [{"photo": "资产/配图/校园航拍_钟楼_半岛第一飞手.jpg", "crop": (0.23, 0, 1, 1),
+    "1_红砖絮语/00_导读.md": [{"photo": "资产/配图/校园航拍_钟楼_半岛第一飞手.jpg", "crop": (0.23, 0, 1, 1),
                             "pos": "50% 0%", "min": 1, "max": 17, "anchor": "bottom",
                             "alt": "钟楼（B 站用户半岛第一飞手航拍）"}],
-    "2_赛道秋声/0_导读.md": [{"photo": "资产/配图/2023运动会开幕式_跑道_鄞中电视台.jpg", "crop": (0, 0.1, 1, 0.835),
+    "2_赛道秋声/00_导读.md": [{"photo": "资产/配图/2023运动会开幕式_跑道_鄞中电视台.jpg", "crop": (0, 0.1, 1, 0.835),
                             "pos": "46% 50%", "min": 1, "max": 15, "anchor": "bottom",
                             "alt": "2023 年运动会开幕式，举班牌走过跑道（鄞中电视台）"}],
-    # 笃前行没有贴题的图，导读写长，不配图
-    "4_思接千载/0_导读.md": [{"art": "moon_lake", "args": {"snow": True}, "min": 1, "alt": "湖心亭看雪"}],
+    # 青衿问道没有贴题的图，导读写长，不配图
+    "4_思接千载/00_导读.md": [{"art": "moon_lake", "args": {"snow": True}, "min": 1, "alt": "湖心亭看雪"}],
     # 风过鄞廊：一头一尾两张「廊」
     "1_红砖絮语/04_风过鄞廊_2505_周真真.md": [
         {"where": "head", "lines": 15, "photo": "资产/配图/2019校园_红砖拱廊_鄞中电视台.jpg", "alt": "红砖拱廊（鄞中电视台）"},
@@ -112,7 +111,7 @@ FILLS_2: dict[str, list[dict]] = {
     "4_思接千载/02_无题_2616_严若馨.md": [{"art": "sky_birds", "alt": "飞鸟和云"}],
     "4_思接千载/04_落叶知秋_2407_汪鑫瑶.md": [{"art": "falling_leaf", "alt": "一片梧桐叶飘落"}],
     "4_思接千载/13_浙里皮影流年，月光映照归途_2506_包轩瑜.md": [{"art": "jiangnan_moon", "alt": "月光下的江南水乡"}],
-    "1_红砖絮语/02_山顶的云海日出_2610_董臙彤.md": [
+    "1_红砖絮语/02_山顶的云海日出_2610_董排彤.md": [
         {"where": "head", "lines": 20, "art": "cloudsea", "args": {"seed": 3}, "alt": "云海日出"},
         {"art": "ink_ridges", "alt": "云下的山脊，像用墨随意勾了几笔"}],
     "2_赛道秋声/06_日光_2516_王子琼.md": [{"art": "book_leaf", "min": 7, "alt": "单词书里夹着的银杏叶"}],
@@ -125,7 +124,7 @@ FILLS_2: dict[str, list[dict]] = {
 }
 
 # 各期配置。sections 为板块目录（可带「01_」这类序号前缀，页眉和目录里去掉）；
-# 板块目录里序号为 0 的稿件（如 0_导读.md）排成板块起始页。
+# 板块目录里序号为 0 的稿件（00_导读.md）排成板块起始页。
 # 内页开头：扉页（右页）、人员表（左页）、目录（右页）、空白页（左页）不印页码、不计页数，其后的第一页（右页）为第 1 页。
 # Chromium 只排人员表以后的部分；扉页和凑双数的空白页在 finalize() 里拼上。
 ISSUES = {
@@ -571,17 +570,8 @@ def all_pieces(issue: str) -> list[Piece]:
     return front + [x for _, items in groups for x in items] + back
 
 
-HEADER_STYLE = ('font-family: "YZ FangSong Supp", "YZ FangSong", "YZ Song", serif; font-weight: 500; font-size: 9pt; '
+HEADER_STYLE = ('font-family: "YZ FangSong", "YZ Song", serif; font-weight: 500; font-size: 9pt; '
                 'vertical-align: bottom; padding-bottom: 8mm;')
-
-
-def supplement_css() -> str:
-    """方正恒仿宋缺的字（如「臙」）用同一字体的部件拼成补字字体（见 fonts.py），按 unicode-range 只管这几个字。"""
-    faces = fonts.make_fangsong_supplement()
-    chars = ", ".join(f"U+{ord(c):04X}" for c in fonts.FANGSONG_COMPOSED)
-    weights = {"R": "100 450", "M": "451 1000"}
-    return "".join(f'@font-face {{ font-family: "YZ FangSong Supp"; src: url("{rel(p)}") format("truetype"); '
-                   f'font-weight: {weights[w]}; unicode-range: {chars}; }}\n' for w, p in faces.items())
 
 
 def section_pages_css(cfg: dict) -> str:
@@ -601,8 +591,7 @@ def section_pages_css(cfg: dict) -> str:
 
 
 def build_html(issue: str, pages: dict[str, int], fills: dict[str, dict[int, int]],
-               pads: dict[str, dict[int, int]] | None = None, tops: dict[str, int] | None = None,
-               extra_css: str = "") -> str:
+               pads: dict[str, dict[int, int]] | None = None, tops: dict[str, int] | None = None) -> str:
     """pages 为各篇印出来的页码（目录、人员表不计页数，其后的第一页是第 1 页）。"""
     cfg = ISSUES[issue]
     front, groups, back = load_issue(issue)
@@ -616,7 +605,7 @@ def build_html(issue: str, pages: dict[str, int], fills: dict[str, dict[int, int
     return ("<!doctype html>\n<html lang=\"zh-Hans\">\n<head>\n<meta charset=\"utf-8\">\n"
             f"<title>{title}</title>\n"
             f'<link rel="stylesheet" href="{rel(HERE / "style.css")}">\n'
-            f"<style>\n{supplement_css()}{section_pages_css(cfg)}\n{extra_css}</style>\n</head>\n<body>\n"
+            f"<style>\n{section_pages_css(cfg)}\n</style>\n</head>\n<body>\n"
             + "\n\n".join(body) + "\n</body>\n</html>\n")
 
 
@@ -626,13 +615,13 @@ def render_pdf(html_path: Path, pdf_path: Path) -> None:
     subprocess.run(["node", str(HERE / "render.cjs"), str(html_path), str(pdf_path)], check=True)
 
 
-def piece_pages(pdf_path: Path, issue: str) -> tuple[dict[str, int], dict[str, tuple[int, int]]]:
+def piece_pages(pdf_path: Path, issue: str, html_text: str) -> tuple[dict[str, int], dict[str, tuple[int, int]]]:
     """根据 PDF 书签（每篇的 h1）确定每篇的起止页。人员表页（第 1 页）没有标题，不在书签里。"""
     front, groups, back = load_issue(issue)
     order = [(p.pid, p.title) for p in front] + [("toc", "目录")] + \
             [(x.pid, x.title) for _, items in groups for x in items] + [(p.pid, p.title) for p in back]
     doc = pymupdf.open(pdf_path)
-    tops = [(t, pg) for lvl, t, pg in doc.get_toc(simple=True) if lvl == 1]
+    tops = [(t, pg) for lvl, t, pg in outline_from_html(doc.get_toc(simple=True), html_text) if lvl == 1]
     starts: dict[str, int] = {}
     j = 0
     for pid, title in order:
@@ -671,11 +660,6 @@ def free_lines(pdf_path: Path, spans: dict[str, tuple[int, int]]) -> dict[str, i
     return out
 
 
-def pdf_text(s: str) -> str:
-    """PDF 文本串：UTF-16BE 加 BOM 的十六进制串，中文在各阅读器里都不乱码。"""
-    return "<FEFF" + s.encode("utf-16-be").hex().upper() + ">"
-
-
 def uncounted_pages(spans: dict[str, tuple[int, int]], staff: bool) -> dict[int, str]:
     """不印页码、不计页数的页：{PDF 里的第几页（从 1 数）: 页码标签}。人员表是第 1 页，目录随后。"""
     out = {1: "人员表"} if staff else {}
@@ -688,22 +672,7 @@ def printed_page(n: int, uncounted: dict[int, str]) -> int:
     return n - sum(1 for u in uncounted if u < n)
 
 
-def set_page_labels(doc: pymupdf.Document, uncounted: dict[int, str]) -> None:
-    """PDF 页码标签，与印出来的页码一致：人员表、目录这两页的标签直接写「人员表」「目录」，不用罗马数字；
-    其余页用印出来的页码。
-    （PyMuPDF 的 set_page_labels 把中文前缀存成不带 BOM 的 UTF-8，有的阅读器显示乱码，所以直接写页码树。）"""
-    nums, in_run = [], False
-    for n in range(1, doc.page_count + 1):
-        if n in uncounted:
-            nums.append(f"{n - 1} <</P {pdf_text(uncounted[n])}>>")
-            in_run = False
-        elif not in_run:
-            nums.append(f"{n - 1} <</S /D /St {printed_page(n, uncounted)}>>")
-            in_run = True
-    doc.xref_set_key(doc.pdf_catalog(), "PageLabels", f"<</Nums [{' '.join(nums)}]>>")
-
-
-def finalize(issue: str, pdf_path: Path, uncounted: dict[int, str], note: str = "") -> tuple[dict[int, str], list[int]]:
+def finalize(issue: str, pdf_path: Path, uncounted: dict[int, str], html_text: str) -> tuple[dict[int, str], list[int]]:
     """拼上扉页、写入元数据和页码标签。Chromium 排好的版面不动：扉页（另做的 PDF）插在最前；
     开头不计页数的页若是奇数张，在其后补一张空白页，让第 1 页仍落在右页（页眉的左右页也就不变）。
     uncounted 为 Chromium 输出里不计页数的页；返回（最终 PDF 里不计页数的页，插入的页在最终 PDF 里的页序）。"""
@@ -726,8 +695,8 @@ def finalize(issue: str, pdf_path: Path, uncounted: dict[int, str], note: str = 
         inserted.append(front + 1)
     # 书签：Chromium 按标题生成的书签随页面移动；前面补上扉页、人员表
     extra = [[1, final[n], n] for n in sorted(final) if final[n] in ("扉页", "人员表")]
-    doc.set_toc(extra + doc.get_toc(simple=False))
-    doc.set_metadata(document_metadata(issue, "内页", doc.metadata.get("producer", ""), note))
+    doc.set_toc(extra + outline_from_html(doc.get_toc(simple=False), html_text))
+    doc.set_metadata(document_metadata(issue, "内页", doc.metadata.get("producer", "")))
     set_page_labels(doc, final)
     doc.save(pdf_path.with_suffix(".tmp.pdf"), garbage=3, deflate=True)
     doc.close()
@@ -743,45 +712,21 @@ def final_page(n: int, inserted: list[int]) -> int:
     return n
 
 
-# 对照版：页码（页脚、目录）不用 Constantia 默认的旧式数字，改用齐线数字
-LINING_CSS = ("@page { @bottom-center { font-variant-numeric: lining-nums; } }\n"
-              ".toc li .p { font-variant-numeric: lining-nums tabular-nums; }\n")
-
-
-def write_build_index(issue: str, pages: dict[str, int], uncounted: dict[int, str]) -> None:
-    """只输出本次重建页码，来源目录及其发行、版本导航由人工维护。"""
-    cfg = ISSUES[issue]
-    front, groups, back = load_issue(issue)
-    names = "、".join(n for n, _ in groups)
-    lead = "、".join(uncounted[n] for n in sorted(uncounted))
-    out = [f"# {issue}重建页码", "",
-           f"按刊登顺序排列；页码为最新一次排版印出来的页码：内页开头的{lead}不印页码、不计页数，"
-           f"其后的第一页为第 1 页。板块名印作{names}（目录名与刊载板块名一致）；各板块起始页的导读在各板块目录的 `0_导读.md`，"
-           f"人员表在 [`{cfg['staff']}`](<{rel(ROOT / issue / cfg['staff'])}>)。", ""]
-
-    def line(p: Piece) -> str:
-        who = f" — {p.cls} {p.name}".rstrip() if p.name else ""
-        return f"[《{p.title}》](<{rel(p.path)}>){who}，第 {pages.get(p.pid, '?')} 页"
-    out += [line(p) for p in front]
-    for sec, items in groups:
-        out += [f"### {sec}", ""]
-        out += [f"{k}. {line(p)}" for k, p in enumerate([x for x in items if x.kind == "article"], 1)]
-        out.append("")
-    for p in back:
-        out += [f"### {p.title}", "", line(p), ""]
-    (OUT_DIR / f"{issue}重建页码.md").write_text("\n".join(out).rstrip() + "\n", encoding="utf-8")
-
-
 def main() -> None:
-    global OPTIONS, FILLS, IMG_DIR
     ap = argparse.ArgumentParser()
     ap.add_argument("issue", nargs="?", default="第二期")
     args = ap.parse_args()
     issue = args.issue
     cfg = ISSUES[issue]
-    check_fonts()
-    require_single_page([ROOT / cfg["title_page"], HERE.parent / "封面" / "第一期封面.pdf",
-                         HERE.parent / "封面" / "第二期封面.pdf"])
+    prepare_fonts()
+    require_single_page([ROOT / cfg["title_page"]])
+    with sources_unchanged():
+        build(issue)
+
+
+def build(issue: str) -> None:
+    global OPTIONS, FILLS, IMG_DIR
+    cfg = ISSUES[issue]
     OPTIONS, FILLS = cfg.get("options", {}), cfg.get("fills", {})
     IMG_DIR = OUT_DIR / "images"
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -798,7 +743,7 @@ def main() -> None:
     for rnd in range(1, 9):
         html_path.write_text(build_html(issue, pages, fills, pads, tops), encoding="utf-8")
         render_pdf(html_path, pdf_path)
-        starts, spans = piece_pages(pdf_path, issue)
+        starts, spans = piece_pages(pdf_path, issue, html_path.read_text(encoding="utf-8"))
         free = free_lines(pdf_path, spans)
         changed = starts != phys
         phys = starts
@@ -842,31 +787,21 @@ def main() -> None:
         if not changed:
             break
 
-    final, inserted = finalize(issue, pdf_path, skip)
+    final, inserted = finalize(issue, pdf_path, skip, html_path.read_text(encoding="utf-8"))
     total = pymupdf.open(pdf_path).page_count
     report = []                                # 起止页按拼好扉页、空白页后的 PDF 计
     for pid, (a, b) in spans.items():
         title = "目录" if pid == "toc" else pieces[pid].title
         report.append({"pid": pid, "title": title, "pages": [final_page(a, inserted), final_page(b, inserted)],
-                       "page_no": pages.get(pid), "free_lines": free[pid], "fills": fills.get(pid, {})})
+                       "page_no": None if a in skip else pages.get(pid),   # 不计页数的页没有页码
+                       "free_lines": free[pid], "fills": fills.get(pid, {})})
     (OUT_DIR / f"{issue}版面.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
-    # 对照版：只换页码数字的样式，版面不变
-    alt_html = OUT_DIR / f"{issue}（齐线数字）.tmp.html"
-    alt_pdf = OUT_DIR / f"{issue}内页（齐线数字）.pdf"
-    alt_html.write_text(build_html(issue, pages, fills, pads, tops, LINING_CSS), encoding="utf-8")
-    render_pdf(alt_html, alt_pdf)
-    alt_html.unlink()
-    finalize(issue, alt_pdf, skip, "（页码用齐线数字）")
-    write_build_index(issue, pages, final)
     # 删掉这一版没用到的图（改名、撤稿后留下的旧图）
     used = set(re.findall(r'src="([^"]+)"', html_path.read_text(encoding="utf-8")))
     for f in IMG_DIR.rglob("*"):
         if f.is_file() and rel(f) not in used:
             f.unlink()
-    # 旧版的封面预览、单页人员表不再生成
-    for old in (f"{issue}（含封面预览）.pdf", f"{issue}人员表（扉页背面）.pdf", f"{issue}人员表.html"):
-        (OUT_DIR / old).unlink(missing_ok=True)
-    print(f"完成：{pdf_path.name}（{total} 页），对照版：{alt_pdf.name}")
+    print(f"完成：{pdf_path.name}（{total} 页）")
     for r in report:
         flag = "  ← 留白多" if r["free_lines"] >= 9 else ""
         print(f"  {r['pages'][0]:>3}–{r['pages'][1]:<3} 末页余 {r['free_lines']:>3} 行  {r['title']}{flag}")

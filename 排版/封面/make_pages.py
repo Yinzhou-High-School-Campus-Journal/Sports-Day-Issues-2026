@@ -13,7 +13,7 @@ gate beam, the teaching blocks and the finned hall. Ginkgo leaves drift by.
 
 All text is at least 10.5 pt; everything is pure black line work. Units: mm.
 Issue 1 (《云图试骏》) only; issue 2 (《骋风逐曜》) has its own design in make_issue2.py.
-Rebuild everything with ./build.sh
+Rebuild everything with python 排版/封面/build.py
 """
 import os, sys, html, math, random
 from pathlib import Path
@@ -28,13 +28,12 @@ if MODE == 'title':          # the simplified scene for the vignette
                      towx='64', towtop='104', tb0='24', tb1='82', tbtop='127', gate='0',
                      hw0='15', hw1='24', hlo='0.6', hhi='1.8', zend='13').items():
         OPT.setdefault(k, v)
-LOCAL = OPT.get('fontdir', os.path.join(HERE, 'fonts'))   # static TrueType subsets from fontprep.py
 def opt(k, d):
     v = OPT.get(k)
     return type(d)(v) if v is not None else d
 
 SECTIONS = ['校运风采', '少年心语', '校园绘卷', '社会观察', '古韵风雅']   # lanes left to right = publication order
-EVENT = '鄞州中学第四十四届暨鄞州蓝青高级中学第二十九届运动会校刊'
+EVENT = '鄞州中学第四十四届暨鄞州蓝青高级中学第二十九届校园运动会特别刊物'
 YEAR, CREDIT = '2026', '媒体部主编'
 # Each issue: its number, a quote from one of its articles, and how far the sun
 # has climbed (issue 1: sunrise before the races; issue 2: the sun is up).
@@ -412,16 +411,10 @@ def face(fam, path, extra=''):
 faces = [face('Mast', os.path.join(FONTS, 'FW筑紫E老明朝.TTF')),
          face('FZHFS', os.path.join(FONTS, 'FZHengFSJF-M.TTF'), 'font-weight:500;'),
          face('Seal', os.path.join(FONTS, '金陵刻经W.ttf'))]
-if os.path.isdir(LOCAL) and OPT.get('fonts', 'local') == 'local':
-    for w in (600, 700, 900):
-        faces.append(face('SHS', f'{LOCAL}/CoverSong-{w}.ttf', f'font-weight:{w};'))
-    for wd, wt in [(100, 500), (100, 700)]:
-        faces.append(face('NSerif', f'{LOCAL}/CoverLatin-w{wd:g}-{wt}.ttf', f'font-weight:{wt};font-stretch:{wd:g}%;'))
-else:
-    for w in (600, 700, 900):
-        faces.append(face('SHS', os.path.join(FONTS, '封面', f'CoverSong-{w}.ttf'), f'font-weight:{w};'))
-    for wt in (500, 700):
-        faces.append(face('NSerif', os.path.join(FONTS, '封面', f'CoverLatin-w100-{wt}.ttf'), f'font-weight:{wt};'))
+for w in (600, 700, 900):
+    faces.append(face('SHS', os.path.join(FONTS, '封面', f'CoverSong-{w}.ttf'), f'font-weight:{w};'))
+for wt in (500, 700):
+    faces.append(face('NSerif', os.path.join(FONTS, '封面', f'CoverLatin-w100-{wt}.ttf'), f'font-weight:{wt};'))
 
 CSS = '\n'.join(faces) + f"""
 @page {{ size: {page_w}mm {page_h}mm; margin: 0; }}

@@ -33,8 +33,8 @@ ROOT = HERE.parents[1]
 OUT_DIR = HERE
 IMG_DIR = OUT_DIR / "images"
 sys.path.insert(0, str(HERE.parent))
-from preflight import check_fonts, require_single_page
-from pdf_metadata import document_metadata
+from preflight import prepare_fonts, require_single_page, sources_unchanged
+from pdf_metadata import document_metadata, outline_from_html, set_page_labels
 
 PT_PER_MM = 72 / 25.4
 LH = 17.35                      # 1 行
@@ -64,7 +64,6 @@ ISSUES = {
         "front": ["0_前置/01_卷首语.md", "0_前置/03_开幕式致辞.md"],
         "sections": ["1_校运风采", "2_少年心语", "3_校园绘卷", "4_社会观察", "5_古韵风雅"],
         "cover": ["排版/封面/第一期封面.pdf", "排版/封面/第一期扉页.pdf"],
-        "staff": "0_前置/02_人员表.md",           # 排在卷首语页底
     },
 }
 
@@ -88,10 +87,11 @@ ARTICLE_OPTIONS: dict[str, dict] = {
 FILLS: dict[str, list[dict]] = {
     # 人员表放在全刊开头：卷首语页底
     "0_前置/01_卷首语.md": [{"staff": "02_人员表.md", "anchor": "bottom"}],
-    "0_前置/03_开幕式致辞.md": [{"photo": "资产/配图/2023运动会开幕式_航拍全景_鄞中电视台.jpg", "crop": (0, 0, 0.86, 1),
+    # 原片右上角有水印：裁掉顶部一成和右侧
+    "0_前置/03_开幕式致辞.md": [{"photo": "资产/配图/2023运动会开幕式_航拍全景_鄞中电视台.jpg", "crop": (0, 0.1, 0.86, 1),
                        "pos": "50% 0%", "min": 5, "alt": "2023 年运动会开幕式航拍（鄞中电视台）"}],
     # 原片右上角有水印、底边有摄像机入镜，都裁掉
-    "1_校运风采/0_导读.md": [{"photo": "资产/配图/2023运动会开幕式_跑道_鄞中电视台.jpg", "crop": (0, 0.1, 1, 0.835),
+    "1_校运风采/00_导读.md": [{"photo": "资产/配图/2023运动会开幕式_跑道_鄞中电视台.jpg", "crop": (0, 0.1, 1, 0.835),
                           "pos": "46% 50%", "min": 1, "max": 15, "anchor": "bottom",
                           "alt": "2023 年运动会开幕式，举班牌走过跑道（鄞中电视台）"}],
     "1_校运风采/01_等一场风_2503_陈雨佳.md": [{"art": "startline", "args": {"sun": False},
@@ -102,7 +102,7 @@ FILLS: dict[str, list[dict]] = {
     "1_校运风采/06_秋，运动，青春丰收_2503_陈思妤.md": [{"art": "ginkgo", "args": {"seed": 5}, "alt": "飘落的银杏叶"}],
     "1_校运风采/08_日光_2516_王子琼.md": [{"art": "book_leaf", "min": 7, "alt": "单词书里夹着的银杏叶"}],
     "1_校运风采/09_一圈_2403_江钡薏.md": [{"art": "oval_track", "args": {"sun": False}, "alt": "一圈跑道"}],
-    "2_少年心语/0_导读.md": [{"photo": "资产/配图/2019校园_仰望树梢_鄞中电视台.jpg", "min": 1, "max": 17,
+    "2_少年心语/00_导读.md": [{"photo": "资产/配图/2019校园_仰望树梢_鄞中电视台.jpg", "min": 1, "max": 17,
                           "anchor": "bottom", "alt": "从树下仰望天空（鄞中电视台）"}],
     "2_少年心语/01_山顶的云海日出_2610_董排彤.md": [
         {"where": "head", "lines": 20, "art": "cloudsea", "args": {"seed": 3}, "alt": "云海日出"},
@@ -111,19 +111,19 @@ FILLS: dict[str, list[dict]] = {
     "2_少年心语/02_雏鸟_2512_张子童.md": [{"photo": "资产/配图/校园航拍_钟楼_半岛第一飞手.jpg", "crop": (0.23, 0.02, 1, 0.55),
                                      "pos": "50% 0%", "anchor": "bottom", "alt": "钟楼（B 站用户半岛第一飞手航拍）"}],
     "2_少年心语/03_凌汐_2509_张瑜璐.md": [{"art": "seawaves", "args": {"birds": 3}, "alt": "海上落日"}],
-    "3_校园绘卷/0_导读.md": [{"photo": "资产/配图/校园航拍_钟楼与长廊_半岛第一飞手.jpg", "crop": (0.23, 0.09, 1, 1),
+    "3_校园绘卷/00_导读.md": [{"photo": "资产/配图/校园航拍_钟楼与长廊_半岛第一飞手.jpg", "crop": (0.23, 0.09, 1, 1),
                           "min": 1, "max": 17, "anchor": "bottom", "alt": "钟楼与红砖长廊（B 站用户半岛第一飞手航拍）"}],
     "3_校园绘卷/02_我们的「纸老虎」政治老师_2517_傅欣妍.md": [{"art": "origami_tiger", "alt": "折纸老虎"}],
     "3_校园绘卷/04_光影_2615_王莘乔.md": [{"photo": "资产/配图/2019校园_红砖拱廊_鄞中电视台.jpg", "max": 17, "anchor": "bottom",
                                       "alt": "红砖拱廊下的光与影（鄞中电视台）"}],
-    "4_社会观察/0_导读.md": [{"photo": "资产/配图/2019校园_窗外_鄞中电视台.jpg", "pos": "80% 50%", "min": 1, "max": 17,
+    "4_社会观察/00_导读.md": [{"photo": "资产/配图/2019校园_窗外_鄞中电视台.jpg", "pos": "80% 50%", "min": 1, "max": 17,
                           "anchor": "bottom", "alt": "窗外（鄞中电视台）"}],
     "4_社会观察/02_飞鸟与透明的墙_2509_梁琼文.md": [
         {"where": "head", "lines": 12, "art": "glass_bird", "alt": "玻璃采光室里的飞鸟"},
         {"art": "feather", "alt": "一片落羽"}],
     "4_社会观察/06_从「石骨铁硬」到「式微之音」_2609_王稼诺.md": [{"art": "gulou", "alt": "宁波鼓楼"}],
     "4_社会观察/08_跨越太平洋的青春力量_2602_杨日明.md": [{"art": "pingpong", "alt": "乒乓球拍、匹克球拍与太平洋"}],
-    "5_古韵风雅/0_导读.md": [{"art": "moon_lake", "args": {"snow": True}, "min": 1, "alt": "湖心亭看雪"}],
+    "5_古韵风雅/00_导读.md": [{"art": "moon_lake", "args": {"snow": True}, "min": 1, "alt": "湖心亭看雪"}],
     "5_古韵风雅/01_秋夜有感_2601_清兰居士.md": [{"art": "moon_bamboo", "alt": "明月、竹与雁"}],
     "5_古韵风雅/02_游天妃湖赏月有感_2614_康茵子.md": [{"grow": True, "min": 3}],
     "5_古韵风雅/06_风乎舞雩_2412_毛奕琳.md": [{"art": "willow", "min": 7, "alt": "风里的垂柳"}],
@@ -509,7 +509,7 @@ def load_issue(issue: str) -> tuple[list[Piece], list[tuple[str, list[Piece]]]]:
         items = [parse_piece(f) for f in files]
         for it in items:
             it.section = re.sub(r"^\d+_", "", sec)
-            if it.path.name.startswith("0_"):
+            if int(it.path.name.split("_")[0]) == 0:     # 00_导读.md：板块起始页
                 it.kind = "opener"
         groups.append((re.sub(r"^\d+_", "", sec), items))
     for n, p in enumerate(front + [x for _, items in groups for x in items], 1):
@@ -543,13 +543,13 @@ def render_pdf(html_path: Path, pdf_path: Path) -> None:
     subprocess.run(["node", str(HERE / "render.cjs"), str(html_path), str(pdf_path)], check=True)
 
 
-def piece_pages(pdf_path: Path, issue: str) -> tuple[dict[str, int], dict[str, tuple[int, int]]]:
+def piece_pages(pdf_path: Path, issue: str, html_text: str) -> tuple[dict[str, int], dict[str, tuple[int, int]]]:
     """根据 PDF 书签（每篇的 h1）确定每篇的起止页。"""
     front, groups = load_issue(issue)
     order = [(p.pid, p.title) for p in front] + [("toc", "目录")] + \
             [(x.pid, x.title) for _, items in groups for x in items]
     doc = pymupdf.open(pdf_path)
-    tops = [(t, pg) for lvl, t, pg in doc.get_toc(simple=True) if lvl == 1]
+    tops = [(t, pg) for lvl, t, pg in outline_from_html(doc.get_toc(simple=True), html_text) if lvl == 1]
     starts: dict[str, int] = {}
     j = 0
     for pid, title in order:
@@ -587,19 +587,12 @@ def free_lines(pdf_path: Path, spans: dict[str, tuple[int, int]]) -> dict[str, i
     return out
 
 
-def set_page_labels(doc: pymupdf.Document, prefixes: list[str]) -> None:
-    # 与第二期相同：中文前缀写作带 BOM 的 UTF-16BE，避免阅读器乱码。
-    nums = [f"{n} <</P <FEFF{label.encode('utf-16-be').hex().upper()}>>>"
-            for n, label in enumerate(prefixes)]
-    nums.append(f"{len(prefixes)} <</S /D /St 1>>")
-    doc.xref_set_key(doc.pdf_catalog(), "PageLabels", f"<</Nums [{' '.join(nums)}]>>")
-
-
-def finalize(issue: str, pdf_path: Path) -> tuple[Path, Path]:
+def finalize(issue: str, pdf_path: Path, html_text: str) -> tuple[Path, Path]:
     cfg = ISSUES[issue]
     cover, title_page = [ROOT / name for name in cfg["cover"]]
     require_single_page([cover, title_page])
     doc = pymupdf.open(pdf_path)
+    doc.set_toc(outline_from_html(doc.get_toc(simple=False), html_text))
     doc.set_metadata(document_metadata(issue, "正文", doc.metadata.get("producer", "")))
     doc.save(pdf_path.with_suffix(".tmp.pdf"), garbage=3, deflate=True)
     doc.close()
@@ -613,7 +606,7 @@ def finalize(issue: str, pdf_path: Path) -> tuple[Path, Path]:
             out.insert_pdf(body)
             out.set_toc([[1, "扉页", 1]] + [[t[0], t[1], t[2] + 1] for t in body.get_toc()])
             out.set_metadata({**body.metadata, **document_metadata(issue, "内页", body.metadata.get("producer", ""))})
-        set_page_labels(out, ["扉页"])
+        set_page_labels(out, {1: "扉页"})
         temp = inner_path.with_suffix(".tmp.pdf")
         out.save(temp, garbage=3, deflate=True)
     temp.replace(inner_path)
@@ -623,7 +616,7 @@ def finalize(issue: str, pdf_path: Path) -> tuple[Path, Path]:
         out.insert_pdf(cd)
         out.insert_pdf(inner)
         out.set_toc([[1, "封面", 1]] + [[t[0], t[1], t[2] + 1] for t in inner.get_toc()])
-        set_page_labels(out, ["封面", "扉页"])
+        set_page_labels(out, {1: "封面", 2: "扉页"})
         out.set_metadata(document_metadata(issue, "含封面预览", inner.metadata.get("producer", "")))
         temp = preview.with_suffix(".tmp.pdf")
         out.save(temp, garbage=3, deflate=True)
@@ -636,8 +629,13 @@ def main() -> None:
     ap.add_argument("issue", nargs="?", default="第一期")
     args = ap.parse_args()
     issue = args.issue
-    check_fonts()
+    prepare_fonts()
     require_single_page([ROOT / name for name in ISSUES[issue]["cover"]])
+    with sources_unchanged():
+        build(issue)
+
+
+def build(issue: str) -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     html_path = OUT_DIR / f"{issue}.html"
     pdf_path = OUT_DIR / f"{issue}正文.pdf"
@@ -650,7 +648,7 @@ def main() -> None:
     for rnd in range(1, 9):
         html_path.write_text(build_html(issue, pages, fills, pads), encoding="utf-8")
         render_pdf(html_path, pdf_path)
-        starts, spans = piece_pages(pdf_path, issue)
+        starts, spans = piece_pages(pdf_path, issue, html_path.read_text(encoding="utf-8"))
         free = free_lines(pdf_path, spans)
         changed = starts != pages
         pages = starts
@@ -692,7 +690,7 @@ def main() -> None:
                        "fills": fills.get(pid, {})})
     (OUT_DIR / f"{issue}版面.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
     total = pymupdf.open(pdf_path).page_count
-    inner, preview = finalize(issue, pdf_path)
+    inner, preview = finalize(issue, pdf_path, html_path.read_text(encoding="utf-8"))
     print(f"完成：{pdf_path.name}（{total} 页），{inner.name}（{total + 1} 页），预览：{preview.name}（{total + 2} 页）")
     for r in report:
         flag = "  ← 留白多" if r["free_lines"] >= 9 else ""

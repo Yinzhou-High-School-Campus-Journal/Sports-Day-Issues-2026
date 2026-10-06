@@ -1,14 +1,15 @@
 .DS_Store
 __pycache__/
+
+# 排版环境
+排版/.venv/
 排版/node_modules/
-排版/*.tmp.pdf
-排版/**/node_modules/
+
+# 排版输出可由源码重建，不提交到仓库
+排版/fonts/YZ*.ttf
+排版/**/*.tmp
 排版/**/*.tmp.pdf
 排版/**/*.tmp.html
-排版/fonts/gen/
-排版/.venv/
-
-# 排版输出可由源码重建，不提交到仓库。
 排版/第一期/*.html
 排版/第一期/*.pdf
 排版/第一期/*版面.json
@@ -16,11 +17,7 @@ __pycache__/
 排版/第二期/*.html
 排版/第二期/*.pdf
 排版/第二期/*版面.json
-排版/第二期/*重建页码.md
 排版/第二期/images/
-
-# 封面成品由源码生成，正式发行文件在 Releases 中提供。
 排版/封面/*.html
 排版/封面/*.pdf
 排版/封面/*.png
-排版/封面/fonts/

@@ -23,13 +23,12 @@ MODE = OPT.get('mode', 'cover')
 if MODE == 'title':
     for k, v in dict(mx='70', my='106', mr='16', sx='140', sy='242', stop='192', hs='1.15').items():
         OPT.setdefault(k, v)
-LOCAL = OPT.get('fontdir', os.path.join(HERE, 'fonts'))
 def opt(k, d):
     v = OPT.get(k)
     return type(d)(v) if v is not None else d
 
 NAME = '骋风逐曜'                                       # this issue's name
-EVENT = '鄞州中学第四十四届暨鄞州蓝青高级中学第二十九届运动会校刊'
+EVENT = '鄞州中学第四十四届暨鄞州蓝青高级中学第二十九届校园运动会特别刊物'
 ISSUE, YEAR, CREDIT = '第二期', '2026', '媒体部主编'
 SECTIONS = ['红砖絮语', '赛道秋声', '青衿问道', '思接千载']   # printed section names, reading order
 QUOTE = ['时流向前，', '万物缤纷争度，', '唯风记得来时路。']      # 《有风吹过》
@@ -491,16 +490,10 @@ def face(fam, path, extra=''):
 faces = [face('Mast', os.path.join(FONTS, 'FW筑紫E老明朝.TTF')),
          face('FZHFS', os.path.join(FONTS, 'FZHengFSJF-M.TTF'), 'font-weight:500;'),
          face('Seal', os.path.join(FONTS, '金陵刻经W.ttf'))]
-if os.path.isdir(LOCAL) and OPT.get('fonts', 'local') == 'local':
-    for w in (600, 700, 900):
-        faces.append(face('SHS', f'{LOCAL}/CoverSong-{w}.ttf', f'font-weight:{w};'))
-    for wd, wt in [(100, 500), (100, 700)]:
-        faces.append(face('NSerif', f'{LOCAL}/CoverLatin-w{wd:g}-{wt}.ttf', f'font-weight:{wt};font-stretch:{wd:g}%;'))
-else:
-    for w in (600, 700, 900):
-        faces.append(face('SHS', os.path.join(FONTS, '封面', f'CoverSong-{w}.ttf'), f'font-weight:{w};'))
-    for wt in (500, 700):
-        faces.append(face('NSerif', os.path.join(FONTS, '封面', f'CoverLatin-w100-{wt}.ttf'), f'font-weight:{wt};'))
+for w in (600, 700, 900):
+    faces.append(face('SHS', os.path.join(FONTS, '封面', f'CoverSong-{w}.ttf'), f'font-weight:{w};'))
+for wt in (500, 700):
+    faces.append(face('NSerif', os.path.join(FONTS, '封面', f'CoverLatin-w100-{wt}.ttf'), f'font-weight:{wt};'))
 
 CSS = '\n'.join(faces) + f"""
 @page {{ size: {page_w}mm {page_h}mm; margin: 0; }}

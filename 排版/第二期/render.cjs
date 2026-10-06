@@ -1,6 +1,6 @@
 // 用 Chromium 把 HTML 打印成 PDF：node render.cjs 输入.html 输出.pdf
 const path = require('path');
-
+const { pathToFileURL } = require('url');
 const { launchChromium } = require('../browser.cjs');
 
 (async () => {
@@ -18,7 +18,7 @@ const { launchChromium } = require('../browser.cjs');
     }
   });
   page.on('console', (msg) => console.log('[页面]', msg.text()));
-  await page.goto('file://' + path.resolve(input), { waitUntil: 'load' });
+  await page.goto(pathToFileURL(path.resolve(input)).href, { waitUntil: 'load' });
   await page.evaluate(() => document.fonts.ready);
   if (missingResources.length) {
     await browser.close();
