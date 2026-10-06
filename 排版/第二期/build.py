@@ -31,7 +31,8 @@ import fonts
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-IMG_DIR = HERE / "images"
+OUT_DIR = HERE.parent / "历史输出" / "第二期"
+IMG_DIR = OUT_DIR / "images"
 
 PT_PER_MM = 72 / 25.4
 LH = 17.35                      # 1 行
@@ -134,7 +135,7 @@ ISSUES = {
         "section_names": {"1_红砖絮语": "红砖絮语", "2_赛道秋声": "赛道秋声",
                           "3_青衿问道": "青衿问道", "4_思接千载": "思接千载"},
         "back": ["卷尾语.md"],          # 全刊最后
-        "title_page": "资产/第二期扉页.pdf",  # 另做的扉页，拼在内页最前
+        "title_page": "排版/封面/第二期扉页.pdf",  # 另做的扉页，拼在内页最前
         "staff": "0_前置/01_人员表.md",           # 扉页背面，在目录前（封面另做）
         "toc_class": True,              # 目录标班级
         "options": OPTIONS_2,
@@ -316,7 +317,7 @@ def process_image(src: Path, crop: tuple[float, float, float, float] | None = No
 
 
 def rel(p: Path) -> str:
-    return Path(os.path.relpath(p, HERE)).as_posix()
+    return Path(os.path.relpath(p, OUT_DIR)).as_posix()
 
 
 def parse_staff(path: Path) -> list[tuple[str, list[str]]]:
@@ -611,7 +612,7 @@ def build_html(issue: str, pages: dict[str, int], fills: dict[str, dict[int, int
     title = " ".join(x for x in (cfg["journal"], issue, cfg.get("name", "")) if x)
     return ("<!doctype html>\n<html lang=\"zh-Hans\">\n<head>\n<meta charset=\"utf-8\">\n"
             f"<title>{title}</title>\n"
-            '<link rel="stylesheet" href="style.css">\n'
+            f'<link rel="stylesheet" href="{rel(HERE / "style.css")}">\n'
             f"<style>\n{supplement_css()}{section_pages_css(cfg)}\n{extra_css}</style>\n</head>\n<body>\n"
             + "\n\n".join(body) + "\n</body>\n</html>\n")
 
@@ -728,7 +729,7 @@ def finalize(issue: str, pdf_path: Path, uncounted: dict[int, str], note: str = 
         "title": title,
         "author": "鄞州中学媒体部",
         "subject": "鄞州中学第四十四届暨鄞州蓝青高级中学第二十九届运动会校刊",
-        "creator": "排版/build.py（HTML → Chromium）",
+        "creator": "排版/第二期/build.py（HTML → Chromium）",
         "producer": doc.metadata.get("producer", ""),
     })
     set_page_labels(doc, final)
@@ -784,9 +785,10 @@ def main() -> None:
     issue = args.issue
     cfg = ISSUES[issue]
     OPTIONS, FILLS = cfg.get("options", {}), cfg.get("fills", {})
-    IMG_DIR = HERE / "images" / issue
-    html_path = HERE / f"{issue}.html"
-    pdf_path = HERE / f"{issue}内页.pdf"
+    IMG_DIR = OUT_DIR / "images"
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    html_path = OUT_DIR / f"{issue}.html"
+    pdf_path = OUT_DIR / f"{issue}内页.pdf"
     pieces = {p.pid: p for p in all_pieces(issue)}
 
     phys: dict[str, int] = {}                  # 各篇起始页（PDF 里的第几页）
@@ -849,10 +851,10 @@ def main() -> None:
         title = "目录" if pid == "toc" else pieces[pid].title
         report.append({"pid": pid, "title": title, "pages": [final_page(a, inserted), final_page(b, inserted)],
                        "page_no": pages.get(pid), "free_lines": free[pid], "fills": fills.get(pid, {})})
-    (HERE / f"{issue}版面.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
+    (OUT_DIR / f"{issue}版面.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
     # 对照版：只换页码数字的样式，版面不变
-    alt_html = HERE / f"{issue}（齐线数字）.tmp.html"
-    alt_pdf = HERE / f"{issue}内页（齐线数字）.pdf"
+    alt_html = OUT_DIR / f"{issue}（齐线数字）.tmp.html"
+    alt_pdf = OUT_DIR / f"{issue}内页（齐线数字）.pdf"
     alt_html.write_text(build_html(issue, pages, fills, pads, tops, LINING_CSS), encoding="utf-8")
     render_pdf(alt_html, alt_pdf)
     alt_html.unlink()
@@ -865,7 +867,7 @@ def main() -> None:
             f.unlink()
     # 旧版的封面预览、单页人员表不再生成
     for old in (f"{issue}（含封面预览）.pdf", f"{issue}人员表（扉页背面）.pdf", f"{issue}人员表.html"):
-        (HERE / old).unlink(missing_ok=True)
+        (OUT_DIR / old).unlink(missing_ok=True)
     print(f"完成：{pdf_path.name}（{total} 页），对照版：{alt_pdf.name}")
     for r in report:
         flag = "  ← 留白多" if r["free_lines"] >= 9 else ""

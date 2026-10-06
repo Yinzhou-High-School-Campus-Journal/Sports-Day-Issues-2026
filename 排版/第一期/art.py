@@ -325,7 +325,7 @@ def track(w: float, h: float, seed: int = 4, horizon: float = 0.3, lanes: int = 
 
 # ---------------------------------------------------------------- 封面线稿复用
 
-COVER = HERE.parent / "资产" / "第一期封面.pdf"
+COVER = HERE.parent / "封面" / "第一期封面.pdf"
 
 
 def _hex(c) -> str:
@@ -1582,7 +1582,7 @@ def make(kind: str, w: float, h: float, **kw) -> str:
 
 if __name__ == "__main__":
     import sys
-    out = HERE / "images" / "art"
+    out = HERE.parent / "历史输出" / "第一期" / "images" / "art"
     out.mkdir(parents=True, exist_ok=True)
     for kind in (sys.argv[1:] or PATTERNS):
         (out / f"preview-{kind}.svg").write_text(make(kind, 441, 260), encoding="utf-8")

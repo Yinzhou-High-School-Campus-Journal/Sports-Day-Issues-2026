@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """《云图试骏》排版：Markdown 稿件 → HTML → PDF。
 
-用法：python3 排版/build.py [第一期]
+用法：python3 排版/第一期/build.py [第一期]
 
 流程：
 1. 读取期刊目录下的稿件（卷首语、开幕式致辞、各板块导读与文章），生成 HTML；
@@ -16,6 +16,7 @@ import argparse
 import html
 import json
 import math
+import os
 import re
 import subprocess
 import sys
@@ -28,8 +29,9 @@ from PIL import Image, ImageFilter, ImageOps
 import art
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parent
-IMG_DIR = HERE / "images"
+ROOT = HERE.parents[1]
+OUT_DIR = HERE.parent / "历史输出" / "第一期"
+IMG_DIR = OUT_DIR / "images"
 
 PT_PER_MM = 72 / 25.4
 LH = 17.35                      # 1 行
@@ -58,7 +60,7 @@ ISSUES = {
         "journal": "云图试骏",
         "front": ["0_前置/01_卷首语.md", "0_前置/03_开幕式致辞.md"],
         "sections": ["1_校运风采", "2_少年心语", "3_校园绘卷", "4_社会观察", "5_古韵风雅"],
-        "cover": ["资产/第一期封面.pdf", "资产/第一期扉页.pdf"],
+        "cover": ["排版/封面/第一期封面.pdf", "排版/封面/第一期扉页.pdf"],
         "staff": "0_前置/02_人员表.md",           # 排在卷首语页底
     },
 }
@@ -271,7 +273,7 @@ def to_print_gray(im: Image.Image, mix: tuple[float, float, float] | None = None
 
 def process_image(src: Path, crop: tuple[float, float, float, float] | None = None,
                   out_name: str | None = None, mix=None, max_side: int = 2000) -> tuple[Path, int, int]:
-    IMG_DIR.mkdir(exist_ok=True)
+    IMG_DIR.mkdir(parents=True, exist_ok=True)
     out = IMG_DIR / (out_name or (src.stem + ".jpg"))
     out.parent.mkdir(parents=True, exist_ok=True)
     if not out.exists() or out.stat().st_mtime < src.stat().st_mtime or crop or mix:
@@ -291,7 +293,7 @@ def process_image(src: Path, crop: tuple[float, float, float, float] | None = No
 
 
 def rel(p: Path) -> str:
-    return p.relative_to(HERE).as_posix()
+    return Path(os.path.relpath(p, OUT_DIR)).as_posix()
 
 
 def parse_staff(path: Path) -> list[tuple[str, list[str]]]:
@@ -528,7 +530,7 @@ def build_html(issue: str, pages: dict[str, int], fills: dict[str, dict[int, int
         body.extend(render_piece(p, fills, pads) for p in items)
     return ("<!doctype html>\n<html lang=\"zh-Hans\">\n<head>\n<meta charset=\"utf-8\">\n"
             f"<title>{cfg['journal']} {issue}</title>\n"
-            '<link rel="stylesheet" href="style.css">\n</head>\n<body>\n'
+            f'<link rel="stylesheet" href="{rel(HERE / "style.css")}">\n</head>\n<body>\n'
             + "\n\n".join(body) + "\n</body>\n</html>\n")
 
 
@@ -589,7 +591,7 @@ def finalize(issue: str, pdf_path: Path) -> Path:
         "title": f"{cfg['journal']} {issue} 内页",
         "author": "鄞州中学媒体部",
         "subject": "鄞州中学第四十四届暨鄞州蓝青高级中学第二十九届运动会校刊",
-        "creator": "排版/build.py（HTML → Chromium）",
+        "creator": "排版/第一期/build.py（HTML → Chromium）",
         "producer": doc.metadata.get("producer", ""),
     })
     doc.save(pdf_path.with_suffix(".tmp.pdf"), garbage=3, deflate=True)
@@ -597,7 +599,7 @@ def finalize(issue: str, pdf_path: Path) -> Path:
     pdf_path.with_suffix(".tmp.pdf").replace(pdf_path)
 
     # 拼上封面和扉页的预览版
-    preview = HERE / f"{issue}（含封面预览）.pdf"
+    preview = OUT_DIR / f"{issue}（含封面预览）.pdf"
     out = pymupdf.open()
     offset = 0
     for c in cfg.get("cover", []):
@@ -620,8 +622,9 @@ def main() -> None:
     ap.add_argument("issue", nargs="?", default="第一期")
     args = ap.parse_args()
     issue = args.issue
-    html_path = HERE / f"{issue}.html"
-    pdf_path = HERE / f"{issue}内页.pdf"
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    html_path = OUT_DIR / f"{issue}.html"
+    pdf_path = OUT_DIR / f"{issue}内页.pdf"
     pieces = {p.pid: p for p in all_pieces(issue)}
 
     pages: dict[str, int] = {}
@@ -671,7 +674,7 @@ def main() -> None:
         title = "目录" if pid == "toc" else pieces[pid].title
         report.append({"pid": pid, "title": title, "pages": [a, b], "free_lines": free[pid],
                        "fills": fills.get(pid, {})})
-    (HERE / f"{issue}版面.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
+    (OUT_DIR / f"{issue}版面.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
     total = pymupdf.open(pdf_path).page_count
     preview = finalize(issue, pdf_path)
     print(f"完成：{pdf_path.name}（{total} 页），预览：{preview.name}")

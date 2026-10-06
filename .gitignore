@@ -6,3 +6,9 @@ __pycache__/
 排版/**/*.tmp.pdf
 排版/**/*.tmp.html
 排版/fonts/gen/
+
+# 封面成品由源码生成，正式发行文件在 Releases 中提供。
+排版/封面/*.html
+排版/封面/*.pdf
+排版/封面/*.png
+排版/封面/fonts/

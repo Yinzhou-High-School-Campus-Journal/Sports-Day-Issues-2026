@@ -19,7 +19,7 @@ from pathlib import Path
 from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
-FONTS = Path(__file__).resolve().parent / "fonts"
+FONTS = Path(__file__).resolve().parents[1] / "fonts"
 
 SOURCES = {
     "NotoSerifSC-VF.ttf": "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Serif/Variable/TTF/Subset/NotoSerifSC-VF.ttf",

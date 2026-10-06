@@ -16,7 +16,7 @@
 /* 西文只管拉丁字母、数字和西文标点；破折号、省略号、间隔号仍交给中文字体 */
 @font-face {
   font-family: "YZ Latin";
-  src: url("fonts/YZLatin-350.ttf") format("truetype"), local("NotoSerif-W350");
+  src: url("../fonts/YZLatin-350.ttf") format("truetype"), local("NotoSerif-W350");
   font-weight: 100 450;
   font-style: normal;
   unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
@@ -24,7 +24,7 @@
 }
 @font-face {
   font-family: "YZ Latin";
-  src: url("fonts/YZLatin-500.ttf") format("truetype"), local("NotoSerif-Medium");
+  src: url("../fonts/YZLatin-500.ttf") format("truetype"), local("NotoSerif-Medium");
   font-weight: 451 550;
   font-style: normal;
   unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
@@ -32,7 +32,7 @@
 }
 @font-face {
   font-family: "YZ Latin";
-  src: url("fonts/YZLatin-600.ttf") format("truetype"), local("NotoSerif-SemiBold");
+  src: url("../fonts/YZLatin-600.ttf") format("truetype"), local("NotoSerif-SemiBold");
   font-weight: 551 650;
   font-style: normal;
   unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
@@ -40,7 +40,7 @@
 }
 @font-face {
   font-family: "YZ Latin";
-  src: url("fonts/YZLatin-700.ttf") format("truetype"), local("NotoSerif-Bold");
+  src: url("../fonts/YZLatin-700.ttf") format("truetype"), local("NotoSerif-Bold");
   font-weight: 651 1000;
   font-style: normal;
   unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
@@ -48,7 +48,7 @@
 }
 @font-face {
   font-family: "YZ Latin";
-  src: url("fonts/YZLatin-Italic-350.ttf") format("truetype"), local("NotoSerif-W350Italic");
+  src: url("../fonts/YZLatin-Italic-350.ttf") format("truetype"), local("NotoSerif-W350Italic");
   font-weight: 100 1000;
   font-style: italic;
   unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
@@ -56,7 +56,7 @@
 }
 @font-face {
   font-family: "YZ Western";
-  src: url("fonts/CONSTAN.TTF") format("truetype"), local("Constantia");
+  src: url("../fonts/CONSTAN.TTF") format("truetype"), local("Constantia");
   font-weight: 100 550;
   font-style: normal;
   unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
@@ -64,7 +64,7 @@
 }
 @font-face {
   font-family: "YZ Western";
-  src: url("fonts/CONSTANB.TTF") format("truetype"), local("Constantia Bold"), local("Constantia-Bold");
+  src: url("../fonts/CONSTANB.TTF") format("truetype"), local("Constantia Bold"), local("Constantia-Bold");
   font-weight: 551 1000;
   font-style: normal;
   unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
@@ -72,7 +72,7 @@
 }
 @font-face {
   font-family: "YZ Western";
-  src: url("fonts/CONSTANI.TTF") format("truetype"), local("Constantia Italic"), local("Constantia-Italic");
+  src: url("../fonts/CONSTANI.TTF") format("truetype"), local("Constantia Italic"), local("Constantia-Italic");
   font-weight: 100 550;
   font-style: italic;
   unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
@@ -80,7 +80,7 @@
 }
 @font-face {
   font-family: "YZ Western";
-  src: url("fonts/CONSTANZ.TTF") format("truetype"), local("Constantia Bold Italic"), local("Constantia-BoldItalic");
+  src: url("../fonts/CONSTANZ.TTF") format("truetype"), local("Constantia Bold Italic"), local("Constantia-BoldItalic");
   font-weight: 551 1000;
   font-style: italic;
   unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF, U+0100-024F, U+2013,
@@ -89,35 +89,35 @@
 /* 中文：思源宋体 SC（Noto Serif SC 静态实例，与思源宋体同一套字形） */
 @font-face {
   font-family: "YZ Song";
-  src: url("fonts/YZSong-400.ttf") format("truetype"), local("SourceHanSerifSC-Regular"), local("NotoSerifCJKsc-Regular");
+  src: url("../fonts/YZSong-400.ttf") format("truetype"), local("SourceHanSerifSC-Regular"), local("NotoSerifCJKsc-Regular");
   font-weight: 100 450;
 }
 @font-face {
   font-family: "YZ Song";
-  src: url("fonts/YZSong-500.ttf") format("truetype"), local("SourceHanSerifSC-Medium"), local("NotoSerifCJKsc-Medium");
+  src: url("../fonts/YZSong-500.ttf") format("truetype"), local("SourceHanSerifSC-Medium"), local("NotoSerifCJKsc-Medium");
   font-weight: 451 550;
 }
 @font-face {
   font-family: "YZ Song";
-  src: url("fonts/YZSong-600.ttf") format("truetype"), local("SourceHanSerifSC-SemiBold"), local("NotoSerifCJKsc-SemiBold");
+  src: url("../fonts/YZSong-600.ttf") format("truetype"), local("SourceHanSerifSC-SemiBold"), local("NotoSerifCJKsc-SemiBold");
   font-weight: 551 650;
 }
 @font-face {
   font-family: "YZ Song";
-  src: url("fonts/YZSong-700.ttf") format("truetype"), local("SourceHanSerifSC-Bold"), local("NotoSerifCJKsc-Bold");
+  src: url("../fonts/YZSong-700.ttf") format("truetype"), local("SourceHanSerifSC-Bold"), local("NotoSerifCJKsc-Bold");
   font-weight: 651 1000;
 }
 /* 方正恒仿宋简繁（FZHengFangSongJF）；封面用的是 Medium，内页作者行同样用 Medium */
 @font-face {
   font-family: "YZ FangSong";
-  src: url("fonts/FZHengFSJF-R.TTF") format("truetype"), local("FZHENGFSJF-R--GBK1-0"),
-    local("FZHengFangSongJF"), url("fonts/ZhuqueFangsong-Regular.ttf") format("truetype");
+  src: url("../fonts/FZHengFSJF-R.TTF") format("truetype"), local("FZHENGFSJF-R--GBK1-0"),
+    local("FZHengFangSongJF"), url("../fonts/ZhuqueFangsong-Regular.ttf") format("truetype");
   font-weight: 100 450;
 }
 @font-face {
   font-family: "YZ FangSong";
-  src: url("fonts/FZHengFSJF-M.TTF") format("truetype"), local("FZHENGFSJF-M--GBK1-0"),
-    local("FZHengFangSongJF Medium"), url("fonts/ZhuqueFangsong-Regular.ttf") format("truetype");
+  src: url("../fonts/FZHengFSJF-M.TTF") format("truetype"), local("FZHENGFSJF-M--GBK1-0"),
+    local("FZHengFangSongJF Medium"), url("../fonts/ZhuqueFangsong-Regular.ttf") format("truetype");
   font-weight: 451 1000;
 }
 
