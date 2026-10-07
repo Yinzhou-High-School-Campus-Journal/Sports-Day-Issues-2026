@@ -29,7 +29,7 @@ INSTANCES = {
 }
 
 # 构建只读不写的来源目录
-SOURCE_DIRS = ("第一期", "第二期", "待选稿", "信息缺失", "资产", "版本记录")
+SOURCE_DIRS = ("第一期", "第二期", "未选入", "信息缺失", "资产", "版本记录")
 
 
 def requirements() -> dict[str, str]:
