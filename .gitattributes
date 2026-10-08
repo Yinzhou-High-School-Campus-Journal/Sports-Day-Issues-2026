@@ -1,8 +1,8 @@
-*.pdf binary
-*.png binary
-*.jpg binary
-*.jpeg binary
-*.ttf binary
-*.otf binary
-*.woff binary
-*.woff2 binary
+*.[pP][dD][fF] binary
+*.[pP][nN][gG] binary
+*.[jJ][pP][gG] binary
+*.[jJ][pP][eE][gG] binary
+*.[tT][tT][fF] binary
+*.[oO][tT][fF] binary
+*.[wW][oO][fF][fF] binary
+*.[wW][oO][fF][fF]2 binary
