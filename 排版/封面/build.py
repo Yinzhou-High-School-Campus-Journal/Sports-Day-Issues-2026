@@ -9,9 +9,12 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
-from preflight import prepare_fonts, require_single_page, sources_unchanged
-from pdf_metadata import document_metadata
+from preflight import check_requirements, prepare_fonts, require_single_page, sources_unchanged
+check_requirements()            # 先核对依赖：没装或版本不对时给出安装提示，而不是在下面导入时报错
+
 import pymupdf
+
+from pdf_metadata import document_metadata
 
 PAGES = [(issue, mode, HERE / script) for issue, script in
          [("第一期", "make_pages.py"), ("第二期", "make_issue2.py")]

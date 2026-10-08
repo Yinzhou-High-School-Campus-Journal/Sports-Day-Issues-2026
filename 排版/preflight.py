@@ -8,8 +8,6 @@ from contextlib import contextmanager
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
-import pymupdf
-
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 FONTS = HERE / "fonts"
@@ -54,7 +52,8 @@ def check_requirements() -> None:
             actual = "未安装"
         if actual != expected:
             raise RuntimeError(f"依赖版本不符：{name} 应为 {expected}，实际为 {actual}；"
-                               "请在排版目录运行 python -m pip install -r requirements.txt")
+                               "请先激活排版目录下的 .venv（source .venv/bin/activate），"
+                               "或在排版目录运行 python -m pip install -r requirements.txt")
 
 
 def check_fonts() -> None:
@@ -111,6 +110,7 @@ def prepare_fonts() -> None:
 
 
 def require_single_page(paths: list[Path]) -> None:
+    import pymupdf              # 在这里才导入：本模块须在依赖装好之前就能载入，好先做 check_requirements()
     for path in paths:
         if not path.is_file():
             raise FileNotFoundError(f"缺少拼页文件：{path}；请先运行 python 排版/封面/build.py")

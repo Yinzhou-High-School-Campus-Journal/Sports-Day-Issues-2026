@@ -5,7 +5,7 @@
 
 流程：
 1. 读取期刊目录下的稿件（卷首语、开幕式致辞、各板块导读与文章），生成 HTML；
-2. 调用 Chromium（render.cjs）打印成 PDF；
+2. 调用 Chromium（排版/render.cjs，两期共用）打印成 PDF；
 3. 从 PDF 书签读出每篇的起止页，回填目录页码；量出每篇末页剩下几行，
    按 FILLS 的配置在留白处放插图（线描按实际尺寸生成，照片按尺寸裁切），再排，直到版面稳定；
 4. 保存正文 PDF，拼入扉页生成完整内页，再拼封面生成预览版。
@@ -23,16 +23,18 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import pymupdf
-from PIL import Image, ImageFilter, ImageOps
-
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 OUT_DIR = HERE
 IMG_DIR = OUT_DIR / "images"
 sys.path.insert(0, str(HERE.parent))
+from preflight import check_requirements, prepare_fonts, require_single_page, sources_unchanged
+check_requirements()            # 先核对依赖：没装或版本不对时给出安装提示，而不是在下面导入时报错
+
+import pymupdf
+from PIL import Image, ImageFilter, ImageOps
+
 import art
-from preflight import prepare_fonts, require_single_page, sources_unchanged
 from pdf_metadata import document_metadata, outline_from_html, set_page_labels
 
 PT_PER_MM = 72 / 25.4
@@ -59,7 +61,8 @@ SECTIONS = {                    # 板块名 → 命名页（页眉）
 
 ISSUES = {
     "第一期": {
-        "journal": "云图试骏",
+        "journal": "校运会特刊",
+        "name": "云图试骏",             # 本期名
         "front": ["0_前置/01_卷首语.md", "0_前置/03_开幕式致辞.md"],
         "sections": ["1_校运风采", "2_少年心语", "3_校园绘卷", "4_社会观察", "5_古韵风雅"],
         "cover": ["排版/封面/第一期封面.pdf", "排版/封面/第一期扉页.pdf"],
@@ -273,12 +276,18 @@ def to_print_gray(im: Image.Image, mix: tuple[float, float, float] | None = None
     return gray
 
 
+_PROCESSED: dict[Path, tuple] = {}      # 本次构建已生成的图：输出路径 → 生成参数
+
+
 def process_image(src: Path, crop: tuple[float, float, float, float] | None = None,
                   out_name: str | None = None, mix=None, max_side: int = 2000) -> tuple[Path, int, int]:
+    """每次构建都从原图重新生成一次（同一次构建里只生成一次），不沿用上次留下的图，
+    免得改了处理参数却用上旧图。同一输出文件只能对应一组参数。"""
     IMG_DIR.mkdir(parents=True, exist_ok=True)
     out = IMG_DIR / (out_name or (src.stem + ".jpg"))
     out.parent.mkdir(parents=True, exist_ok=True)
-    if not out.exists() or out.stat().st_mtime < src.stat().st_mtime or crop or mix:
+    params = (src, crop, mix, max_side)
+    if out not in _PROCESSED:
         im = ImageOps.exif_transpose(Image.open(src)).convert("RGB")
         if crop:
             w, h = im.size
@@ -290,6 +299,9 @@ def process_image(src: Path, crop: tuple[float, float, float, float] | None = No
                          Image.LANCZOS)
         g = g.filter(ImageFilter.UnsharpMask(radius=1.2, percent=60, threshold=2))
         g.save(out, "JPEG", quality=90, dpi=(300, 300), optimize=True)
+        _PROCESSED[out] = params
+    elif _PROCESSED[out] != params:
+        raise RuntimeError(f"两处配图要写到同一个文件 {out.name}，但裁切或处理参数不同")
     with Image.open(out) as im:
         return out, im.width, im.height
 
@@ -531,7 +543,7 @@ def build_html(issue: str, pages: dict[str, int], fills: dict[str, dict[int, int
     for _, items in groups:
         body.extend(render_piece(p, fills, pads) for p in items)
     return ("<!doctype html>\n<html lang=\"zh-Hans\">\n<head>\n<meta charset=\"utf-8\">\n"
-            f"<title>{cfg['journal']} {issue}</title>\n"
+            f"<title>{cfg['journal']} {issue} {cfg['name']}</title>\n"
             f'<link rel="stylesheet" href="{rel(HERE / "style.css")}">\n</head>\n<body>\n'
             + "\n\n".join(body) + "\n</body>\n</html>\n")
 
@@ -539,7 +551,7 @@ def build_html(issue: str, pages: dict[str, int], fills: dict[str, dict[int, int
 # ---------------------------------------------------------------- 输出与分析
 
 def render_pdf(html_path: Path, pdf_path: Path) -> None:
-    subprocess.run(["node", str(HERE / "render.cjs"), str(html_path), str(pdf_path)], check=True)
+    subprocess.run(["node", str(HERE.parent / "render.cjs"), str(html_path), str(pdf_path)], check=True)
 
 
 def piece_pages(pdf_path: Path, issue: str, html_text: str) -> tuple[dict[str, int], dict[str, tuple[int, int]]]:
@@ -603,7 +615,8 @@ def finalize(issue: str, pdf_path: Path, html_text: str) -> tuple[Path, Path]:
         with pymupdf.open(title_page) as title, pymupdf.open(pdf_path) as body:
             out.insert_pdf(title)
             out.insert_pdf(body)
-            out.set_toc([[1, "扉页", 1]] + [[t[0], t[1], t[2] + 1] for t in body.get_toc()])
+            # 书签沿用正文里的落点（指向各标题所在位置），页序整体后移一页
+            out.set_toc([[1, "扉页", 1]] + [[t[0], t[1], t[2] + 1, t[3]] for t in body.get_toc(simple=False)])
             out.set_metadata({**body.metadata, **document_metadata(issue, "内页", body.metadata.get("producer", ""))})
         set_page_labels(out, {1: "扉页"})
         temp = inner_path.with_suffix(".tmp.pdf")
@@ -614,7 +627,7 @@ def finalize(issue: str, pdf_path: Path, html_text: str) -> tuple[Path, Path]:
     with pymupdf.open() as out, pymupdf.open(cover) as cd, pymupdf.open(inner_path) as inner:
         out.insert_pdf(cd)
         out.insert_pdf(inner)
-        out.set_toc([[1, "封面", 1]] + [[t[0], t[1], t[2] + 1] for t in inner.get_toc()])
+        out.set_toc([[1, "封面", 1]] + [[t[0], t[1], t[2] + 1, t[3]] for t in inner.get_toc(simple=False)])
         set_page_labels(out, {1: "封面", 2: "扉页"})
         out.set_metadata(document_metadata(issue, "含封面预览", inner.metadata.get("producer", "")))
         temp = preview.with_suffix(".tmp.pdf")
@@ -625,7 +638,7 @@ def finalize(issue: str, pdf_path: Path, html_text: str) -> tuple[Path, Path]:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("issue", nargs="?", default="第一期")
+    ap.add_argument("issue", nargs="?", default="第一期", choices=list(ISSUES))
     args = ap.parse_args()
     issue = args.issue
     prepare_fonts()
@@ -681,6 +694,9 @@ def build(issue: str) -> None:
         print(f"第 {rnd} 遍：{pymupdf.open(pdf_path).page_count} 页")
         if not changed:
             break
+    else:
+        # 第 8 遍还在变：目录页码或配图行数与版面对不上，不能当成品
+        raise RuntimeError("排了 8 遍版面仍未稳定，目录页码或配图可能与版面不符；请检查 FILLS 配置")
 
     report = []
     for pid, (a, b) in spans.items():
@@ -688,6 +704,11 @@ def build(issue: str) -> None:
         report.append({"pid": pid, "title": title, "pages": [a + 1, b + 1], "page_no": a, "free_lines": free[pid],
                        "fills": fills.get(pid, {})})
     (OUT_DIR / f"{issue}版面.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
+    # 删掉这一版没用到的图（改名、撤稿后留下的旧图）
+    used = set(re.findall(r'src="([^"]+)"', html_path.read_text(encoding="utf-8")))
+    for f in IMG_DIR.rglob("*"):
+        if f.is_file() and rel(f) not in used:
+            f.unlink()
     total = pymupdf.open(pdf_path).page_count
     inner, preview = finalize(issue, pdf_path, html_path.read_text(encoding="utf-8"))
     print(f"完成：{pdf_path.name}（{total} 页），{inner.name}（{total + 1} 页），预览：{preview.name}（{total + 2} 页）")

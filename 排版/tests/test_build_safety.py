@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -101,6 +102,22 @@ class BuildSafety(unittest.TestCase):
             with patch.object(preflight, "HERE", tmp):
                 with self.assertRaisesRegex(ValueError, "包名==版本"):
                     preflight.requirements()
+
+    def test_preflight_loads_before_dependencies_are_installed(self):
+        # 依赖没装时也要能载入 preflight，好给出安装提示，而不是 ImportError
+        code = ("import sys; sys.modules['pymupdf'] = None; sys.modules['fontTools'] = None; "
+                f"sys.path.insert(0, {str(LAYOUT)!r}); import preflight")
+        subprocess.run([sys.executable, "-c", code], check=True)
+
+    def test_same_output_image_with_different_crop_is_fatal(self):
+        module = load_issue("第二期")
+        photo = LAYOUT.parent / "资产/配图/2019校园_窗外_鄞中电视台.jpg"
+        with tempfile.TemporaryDirectory() as tmp, patch.object(module, "IMG_DIR", Path(tmp)), \
+             patch.object(module, "_PROCESSED", {}):
+            module.process_image(photo, out_name="x.jpg")
+            module.process_image(photo, out_name="x.jpg")          # 同一组参数：直接复用
+            with self.assertRaisesRegex(RuntimeError, "x.jpg"):
+                module.process_image(photo, (0, 0, 0.5, 0.5), out_name="x.jpg")
 
     def test_generated_font_matches_manifest(self):
         name = "YZLatin-Italic-350.ttf"

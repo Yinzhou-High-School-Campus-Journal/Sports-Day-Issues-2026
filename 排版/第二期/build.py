@@ -5,7 +5,7 @@
 
 流程：
 1. 读取期刊目录下的稿件（目录、人员表、各板块导读与文章、卷尾语），生成 HTML；
-2. 调用 Chromium（render.cjs）打印成 PDF；
+2. 调用 Chromium（排版/render.cjs，两期共用）打印成 PDF；
 3. 从 PDF 书签读出每篇的起止页，回填目录页码；量出每篇末页剩下几行，
    按 FILLS 的配置在留白处放插图（线描按实际尺寸生成，照片按尺寸裁切），再排，直到版面稳定；
 4. 拼上扉页，写入书签、PDF 元数据和页码标签。
@@ -23,16 +23,18 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import pymupdf
-from PIL import Image, ImageFilter, ImageOps
-
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 OUT_DIR = HERE
 IMG_DIR = OUT_DIR / "images"
 sys.path.insert(0, str(HERE.parent))
+from preflight import check_requirements, prepare_fonts, require_single_page, sources_unchanged
+check_requirements()            # 先核对依赖：没装或版本不对时给出安装提示，而不是在下面导入时报错
+
+import pymupdf
+from PIL import Image, ImageFilter, ImageOps
+
 import art
-from preflight import prepare_fonts, require_single_page, sources_unchanged
 from pdf_metadata import document_metadata, outline_from_html, set_page_labels
 
 PT_PER_MM = 72 / 25.4
@@ -296,12 +298,18 @@ def to_print_gray(im: Image.Image, mix: tuple[float, float, float] | None = None
     return gray
 
 
+_PROCESSED: dict[Path, tuple] = {}      # 本次构建已生成的图：输出路径 → 生成参数
+
+
 def process_image(src: Path, crop: tuple[float, float, float, float] | None = None,
                   out_name: str | None = None, mix=None, max_side: int = 2000) -> tuple[Path, int, int]:
+    """每次构建都从原图重新生成一次（同一次构建里只生成一次），不沿用上次留下的图，
+    免得改了处理参数却用上旧图。同一输出文件只能对应一组参数。"""
     IMG_DIR.mkdir(parents=True, exist_ok=True)
     out = IMG_DIR / (out_name or (src.stem + ".jpg"))
     out.parent.mkdir(parents=True, exist_ok=True)
-    if not out.exists() or out.stat().st_mtime < src.stat().st_mtime or crop or mix:
+    params = (src, crop, mix, max_side)
+    if out not in _PROCESSED:
         im = ImageOps.exif_transpose(Image.open(src)).convert("RGB")
         if crop:
             w, h = im.size
@@ -313,6 +321,9 @@ def process_image(src: Path, crop: tuple[float, float, float, float] | None = No
                          Image.LANCZOS)
         g = g.filter(ImageFilter.UnsharpMask(radius=1.2, percent=60, threshold=2))
         g.save(out, "JPEG", quality=90, dpi=(300, 300), optimize=True)
+        _PROCESSED[out] = params
+    elif _PROCESSED[out] != params:
+        raise RuntimeError(f"两处配图要写到同一个文件 {out.name}，但裁切或处理参数不同")
     with Image.open(out) as im:
         return out, im.width, im.height
 
@@ -335,7 +346,7 @@ STAFF_NAME_EM = 7                # 人员表姓名栏宽：两个三字名加一
 
 
 def render_staff(issue: str) -> str:
-    """人员表单占一页（扉页背面，左页；扉页在 finalize() 里拼上）。仿 V5 竖式：窄窄一栏，每行至多两个姓名，转行与首个姓名对齐；
+    """人员表单占一页（扉页背面，左页；扉页在 finalize() 里拼上）。仿老师发来的付印版的竖式：窄窄一栏，每行至多两个姓名，转行与首个姓名对齐；
     职务撑成同宽，冒号、姓名上下对齐。「特别致谢」紧接着排在最后一行，单位名不折行。
     整块排在版心左上角，从第一行起，基线落在行线上。"""
     cfg = ISSUES[issue]
@@ -611,7 +622,7 @@ def build_html(issue: str, pages: dict[str, int], fills: dict[str, dict[int, int
 # ---------------------------------------------------------------- 输出与分析
 
 def render_pdf(html_path: Path, pdf_path: Path) -> None:
-    subprocess.run(["node", str(HERE / "render.cjs"), str(html_path), str(pdf_path)], check=True)
+    subprocess.run(["node", str(HERE.parent / "render.cjs"), str(html_path), str(pdf_path)], check=True)
 
 
 def piece_pages(pdf_path: Path, issue: str, html_text: str) -> tuple[dict[str, int], dict[str, tuple[int, int]]]:
@@ -713,7 +724,7 @@ def final_page(n: int, inserted: list[int]) -> int:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("issue", nargs="?", default="第二期")
+    ap.add_argument("issue", nargs="?", default="第二期", choices=list(ISSUES))
     args = ap.parse_args()
     issue = args.issue
     cfg = ISSUES[issue]
@@ -785,6 +796,9 @@ def build(issue: str) -> None:
         print(f"第 {rnd} 遍：{pymupdf.open(pdf_path).page_count} 页")
         if not changed:
             break
+    else:
+        # 第 8 遍还在变：目录页码或配图行数与版面对不上，不能当成品
+        raise RuntimeError("排了 8 遍版面仍未稳定，目录页码或配图可能与版面不符；请检查 FILLS 配置")
 
     final, inserted = finalize(issue, pdf_path, skip, html_path.read_text(encoding="utf-8"))
     total = pymupdf.open(pdf_path).page_count

@@ -15,8 +15,8 @@ test('显式浏览器路径不丢失字体微调参数', () => {
   assert.deepEqual(options.args, ['--font-render-hinting=none']);
 });
 test('封面及两期内页均使用共用启动入口，并用 pathToFileURL 打开文件', () => {
-  for (const folder of ['第一期', '第二期', '封面']) {
-    const source = fs.readFileSync(path.join(__dirname, '..', folder, 'render.cjs'), 'utf8');
+  for (const file of ['render.cjs', '封面/render.cjs']) {
+    const source = fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
     assert.match(source, /await launchChromium\(\)/);
     assert.doesNotMatch(source, /chromium\.launch\(/);
     // 'file://' 直接拼路径时，路径里的 #、?、% 会被当成锚点或查询串
