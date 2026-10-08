@@ -35,7 +35,7 @@ import pymupdf
 from PIL import Image, ImageFilter, ImageOps
 
 import art
-from pdf_metadata import document_metadata, outline_from_html, set_page_labels
+from pdf_metadata import document_metadata, outline_from_html, save_pdf, set_page_labels
 
 PT_PER_MM = 72 / 25.4
 LH = 17.35                      # 1 行
@@ -605,7 +605,7 @@ def finalize(issue: str, pdf_path: Path, html_text: str) -> tuple[Path, Path]:
     doc = pymupdf.open(pdf_path)
     doc.set_toc(outline_from_html(doc.get_toc(simple=False), html_text))
     doc.set_metadata(document_metadata(issue, "正文", doc.metadata.get("producer", "")))
-    doc.save(pdf_path.with_suffix(".tmp.pdf"), garbage=3, deflate=True)
+    save_pdf(doc, pdf_path.with_suffix(".tmp.pdf"))
     doc.close()
     pdf_path.with_suffix(".tmp.pdf").replace(pdf_path)
 
@@ -617,10 +617,10 @@ def finalize(issue: str, pdf_path: Path, html_text: str) -> tuple[Path, Path]:
             out.insert_pdf(body)
             # 书签沿用正文里的落点（指向各标题所在位置），页序整体后移一页
             out.set_toc([[1, "扉页", 1]] + [[t[0], t[1], t[2] + 1, t[3]] for t in body.get_toc(simple=False)])
-            out.set_metadata({**body.metadata, **document_metadata(issue, "内页", body.metadata.get("producer", ""))})
+            out.set_metadata(document_metadata(issue, "内页", body.metadata.get("producer", "")))
         set_page_labels(out, {1: "扉页"})
         temp = inner_path.with_suffix(".tmp.pdf")
-        out.save(temp, garbage=3, deflate=True)
+        save_pdf(out, temp)
     temp.replace(inner_path)
 
     preview = OUT_DIR / f"{issue}（含封面预览）.pdf"
@@ -631,7 +631,7 @@ def finalize(issue: str, pdf_path: Path, html_text: str) -> tuple[Path, Path]:
         set_page_labels(out, {1: "封面", 2: "扉页"})
         out.set_metadata(document_metadata(issue, "含封面预览", inner.metadata.get("producer", "")))
         temp = preview.with_suffix(".tmp.pdf")
-        out.save(temp, garbage=3, deflate=True)
+        save_pdf(out, temp)
     temp.replace(preview)
     return inner_path, preview
 

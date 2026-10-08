@@ -14,7 +14,7 @@ check_requirements()            # 先核对依赖：没装或版本不对时给�
 
 import pymupdf
 
-from pdf_metadata import document_metadata
+from pdf_metadata import document_metadata, save_pdf
 
 PAGES = [(issue, mode, HERE / script) for issue, script in
          [("第一期", "make_pages.py"), ("第二期", "make_issue2.py")]
@@ -28,13 +28,14 @@ def main() -> None:
         outputs = []
         for issue, mode, script in PAGES:
             name = issue + ("封面" if mode == "cover" else "扉页")
-            html, pdf, png = tmp / f"{name}.html", tmp / f"{name}.pdf", tmp / f"{name}.png"
+            html, raw, png = tmp / f"{name}.html", tmp / f"{name}.raw.pdf", tmp / f"{name}.png"
+            pdf = tmp / f"{name}.pdf"
             subprocess.run([sys.executable, str(script), f"mode={mode}", f"out={html}"], check=True)
-            subprocess.run(["node", str(HERE / "render.cjs"), str(html), str(pdf), str(png)], check=True)
-            with pymupdf.open(pdf) as doc:
+            subprocess.run(["node", str(HERE / "render.cjs"), str(html), str(raw), str(png)], check=True)
+            with pymupdf.open(raw) as doc:
                 doc.set_metadata(document_metadata(issue, "封面" if mode == "cover" else "扉页",
                                                    doc.metadata.get("producer", "")))
-                doc.saveIncr()
+                save_pdf(doc, pdf)
             require_single_page([pdf])
             outputs.extend([pdf, png])
         # 全部成功后再替换既有成品，失败不留下半套封面

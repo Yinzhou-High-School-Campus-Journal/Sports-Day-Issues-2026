@@ -35,7 +35,7 @@ import pymupdf
 from PIL import Image, ImageFilter, ImageOps
 
 import art
-from pdf_metadata import document_metadata, outline_from_html, set_page_labels
+from pdf_metadata import document_metadata, outline_from_html, save_pdf, set_page_labels
 
 PT_PER_MM = 72 / 25.4
 LH = 17.35                      # 1 行
@@ -708,7 +708,7 @@ def finalize(issue: str, pdf_path: Path, uncounted: dict[int, str], html_text: s
     doc.set_toc(extra + outline_from_html(doc.get_toc(simple=False), html_text))
     doc.set_metadata(document_metadata(issue, "内页", doc.metadata.get("producer", "")))
     set_page_labels(doc, final)
-    doc.save(pdf_path.with_suffix(".tmp.pdf"), garbage=3, deflate=True)
+    save_pdf(doc, pdf_path.with_suffix(".tmp.pdf"))
     doc.close()
     pdf_path.with_suffix(".tmp.pdf").replace(pdf_path)
     return final, inserted
