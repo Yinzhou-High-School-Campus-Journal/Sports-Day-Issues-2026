@@ -9,6 +9,6 @@
 | `CONSTAN*.TTF` | Constantia：成段西文、页码等 |
 | `FZHengFSJF-*.TTF` | 方正恒仿宋：作者署名、导读、人员表 |
 | `封面/CoverSong-*.ttf`、`封面/CoverLatin-*.ttf` | 封面用的思源宋体与 Noto Serif 字形子集 |
-| `FW筑紫E老明朝.TTF`、`金陵刻经W.ttf` | 封面刊名与印章 |
+| `FW筑紫E老明朝.TTF`、`金陵刻经W.ttf` | 封面期名与印章 |
 
 Noto Serif SC、Noto Serif 与思源宋体采用 SIL Open Font License 1.1，许可文本分别见 [OFL-NotoSerifSC.txt](OFL-NotoSerifSC.txt)、[OFL-NotoSerif.txt](OFL-NotoSerif.txt) 和 [OFL-SourceHanSerif.txt](OFL-SourceHanSerif.txt)。
