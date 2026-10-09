@@ -110,14 +110,25 @@ class BuildSafety(unittest.TestCase):
         subprocess.run([sys.executable, "-c", code], check=True)
 
     def test_same_output_image_with_different_crop_is_fatal(self):
-        module = load_issue("第二期")
+        import typeset
         photo = LAYOUT.parent / "资产/配图/2019校园_窗外_鄞中电视台.jpg"
-        with tempfile.TemporaryDirectory() as tmp, patch.object(module, "IMG_DIR", Path(tmp)), \
-             patch.object(module, "_PROCESSED", {}):
-            module.process_image(photo, out_name="x.jpg")
-            module.process_image(photo, out_name="x.jpg")          # 同一组参数：直接复用
+        with tempfile.TemporaryDirectory() as tmp:
+            book = typeset.Book(Path(tmp), {}, {})
+            book.process_image(photo, out_name="x.jpg")
+            book.process_image(photo, out_name="x.jpg")            # 同一组参数：直接复用
             with self.assertRaisesRegex(RuntimeError, "x.jpg"):
-                module.process_image(photo, (0, 0, 0.5, 0.5), out_name="x.jpg")
+                book.process_image(photo, (0, 0, 0.5, 0.5), out_name="x.jpg")
+
+    def test_image_urls_survive_special_characters(self):
+        import typeset
+        book = typeset.Book(Path("/out"), {}, {})
+        self.assertEqual(book.rel(Path("/out/images/a#b?c%d.jpg")), "images/a%23b%3Fc%25d.jpg")
+
+    def test_headings_and_images_need_no_blank_line(self):
+        import typeset
+        blocks = typeset.parse_body(["第一段", "### 小标题", "第二段", "![图](a.jpg)", "![图](b.jpg)", "第三段"])
+        self.assertEqual([b.kind for b in blocks], ["p", "h", "p", "img", "img", "p"])
+        self.assertEqual([b.text for b in blocks if b.kind == "p"], ["第一段", "第二段", "第三段"])
 
     def test_generated_font_matches_manifest(self):
         name = "YZLatin-Italic-350.ttf"

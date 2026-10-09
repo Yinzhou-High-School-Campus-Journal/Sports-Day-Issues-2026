@@ -281,71 +281,6 @@ def ginkgo(w: float, h: float, seed: int = 3, count: int | None = None, ground: 
     return c.svg()
 
 
-def track(w: float, h: float, seed: int = 4, horizon: float = 0.3, lanes: int = 6, sun: bool = True,
-          start_line: bool = True) -> str:
-    """透视跑道伸向远方，两侧等高线云海，远处落日。"""
-    rng = random.Random(seed)
-    c = Canvas(w, h)
-    hy = h * horizon
-    vx = w * 0.5
-    if sun:
-        r = min(w * 0.08, h * 0.16)
-        circle(c, w * 0.7, hy - r * 0.35, r)
-        streak(c, w * 0.48, hy - r * 1.3, w * 0.88, hy - r * 1.55, thick=1.2)
-        streak(c, w * 0.08, hy * 0.45, w * 0.36, hy * 0.35, thick=1.0)
-    c.path(f"M0,{f2(hy)} L{f2(w)},{f2(hy)}", sw=THIN)
-    # 跑道在底边的宽度与远端宽度
-    bw = w * 0.62
-    tw = w * 0.05
-    bl, br = vx - bw / 2, vx + bw / 2
-    tl, trr = vx - tw / 2, vx + tw / 2
-    c.defs.append(f'<clipPath id="side"><path d="M0,0 L{f2(w)},0 L{f2(w)},{f2(h)} L{f2(br)},{f2(h + 1)} '
-                  f'L{f2(trr)},{f2(hy)} L{f2(tl)},{f2(hy)} L{f2(bl)},{f2(h + 1)} L0,{f2(h)}Z"/></clipPath>')
-    ridge_rows(c, 0, w, hy, h + 6, max(16, round((h - hy) / 4.2)), rng, amp=0.8 + h / 500, persp=1.7,
-               clip_poly="side", avoid=(tl - 20, trr + 20))
-    # 跑道
-    c.path(poly([(bl, h + 1), (tl, hy), (trr, hy), (br, h + 1)], closed=True), sw=0, fill="#fff")
-    for k in range(lanes + 1):
-        u = k / lanes
-        xb = bl + (br - bl) * u
-        xt = tl + (trr - tl) * u
-        sw = MAIN if k in (0, lanes) else THIN
-        c.path(f"M{f2(xb)},{f2(h + 1)} L{f2(xt)},{f2(hy)}", sw=sw)
-    if start_line:
-        y = h - (h - hy) * 0.14
-        f = (y - hy) / (h - hy)
-        xl = tl + (bl - tl) * f
-        xr = trr + (br - trr) * f
-        c.path(f"M{f2(xl)},{f2(y)} L{f2(xr)},{f2(y)}", sw=MAIN)
-        y2 = h - (h - hy) * 0.07
-        f2_ = (y2 - hy) / (h - hy)
-        c.path(f"M{f2(tl + (bl - tl) * f2_)},{f2(y2)} L{f2(trr + (br - trr) * f2_)},{f2(y2)}", sw=THIN)
-    return c.svg()
-
-
-def stars(c: Canvas, rng: random.Random, n: int, x0: float, x1: float, y0: float, y1: float) -> None:
-    for _ in range(n):
-        x, y, s = rng.uniform(x0, x1), rng.uniform(y0, y1), rng.uniform(1.2, 2.6)
-        c.path(f"M{f2(x - s)},{f2(y)} L{f2(x + s)},{f2(y)} M{f2(x)},{f2(y - s)} L{f2(x)},{f2(y + s)}", sw=HAIR)
-
-
-def brick_wall(c: Canvas, x0: float, y0: float, x1: float, y1: float, course: float = 5.2) -> None:
-    c.path(poly([(x0, y1), (x0, y0), (x1, y0), (x1, y1)], closed=True), sw=MAIN, fill="#fff")
-    y, row = y0 + course, 0
-    while y < y1 - 0.5:
-        c.path(f"M{f2(x0)},{f2(y)} L{f2(x1)},{f2(y)}", sw=HAIR)
-        y += course
-    y, row = y0, 0
-    while y < y1 - 0.5:
-        off = (row % 2) * course * 1.1
-        x = x0 + off + course * 2.2
-        while x < x1 - 1:
-            c.path(f"M{f2(x)},{f2(y)} L{f2(x)},{f2(min(y + course, y1))}", sw=HAIR)
-            x += course * 2.2
-        y += course
-        row += 1
-
-
 def cat_back(c: Canvas, x: float, y: float, s: float) -> None:
     """坐着的猫的背影，(x, y) 为底边中点。"""
     pts = [(-0.42, 0), (-0.47, -0.35), (-0.36, -0.7), (-0.22, -0.9), (-0.25, -1.12), (-0.2, -1.38),
@@ -354,44 +289,6 @@ def cat_back(c: Canvas, x: float, y: float, s: float) -> None:
     c.path(smooth([(x + px * s, y + py * s) for px, py in pts], t=0.7) + "Z", sw=MAIN, fill="#fff")
     c.path(f"M{f2(x + 0.42 * s)},{f2(y - 0.03 * s)} C{f2(x + 0.75 * s)},{f2(y - 0.02 * s)} "
            f"{f2(x + 0.8 * s)},{f2(y - 0.35 * s)} {f2(x + 0.62 * s)},{f2(y - 0.5 * s)}", sw=MAIN)
-
-
-def clock_tower(c: Canvas, x: float, y_bot: float, H: float) -> float:
-    """按封面样式画鄞中钟楼：顶部缺口、方框钟面、成对小窗、右侧竖条侧板。x 为左边，返回总宽。"""
-    W = 0.21 * H
-    P = 0.072 * H
-    top = y_bot - H
-    # 侧板
-    c.path(poly([(x + W, y_bot), (x + W, top + 0.02 * H), (x + W + P, top + 0.02 * H), (x + W + P, y_bot)], closed=True),
-           sw=MAIN, fill="#fff")
-    c.path(poly([(x + W + P * 0.32, top + 0.1 * H), (x + W + P * 0.68, top + 0.1 * H),
-                 (x + W + P * 0.68, top + 0.36 * H), (x + W + P * 0.32, top + 0.36 * H)], closed=True), sw=0, fill="#000")
-    y = top + 0.42 * H
-    while y < y_bot - 0.5:
-        c.path(f"M{f2(x + W)},{f2(y)} L{f2(x + W + P)},{f2(y)}", sw=HAIR)
-        y += max(1.6, H * 0.011)
-    # 主体与顶部缺口
-    nw, nd = 0.22 * W, 0.022 * H
-    c.path(poly([(x, y_bot), (x, top), (x + W / 2 - nw / 2, top), (x + W / 2 - nw / 2, top + nd),
-                 (x + W / 2 + nw / 2, top + nd), (x + W / 2 + nw / 2, top), (x + W, top), (x + W, y_bot)], closed=True),
-           sw=MAIN, fill="#fff")
-    # 钟面
-    cs = 0.46 * W
-    cx, cy = x + W / 2, top + 0.105 * H
-    c.path(poly([(cx - cs / 2, cy - cs / 2), (cx + cs / 2, cy - cs / 2), (cx + cs / 2, cy + cs / 2),
-                 (cx - cs / 2, cy + cs / 2)], closed=True), sw=MAIN, fill="#fff")
-    circle(c, cx, cy, cs * 0.36, sw=MAIN)
-    circle(c, cx, cy, cs * 0.27, sw=THIN)
-    # 成对小窗
-    sq = 0.075 * W
-    y = top + 0.3 * H
-    while y < y_bot - 0.03 * H:
-        for colx in (x + 0.22 * W, x + 0.62 * W):
-            for k in (0, 1):
-                xx = colx + k * sq * 1.7
-                c.path(poly([(xx, y), (xx + sq, y), (xx + sq, y + sq), (xx, y + sq)], closed=True), sw=0, fill="#000")
-        y += 0.052 * H
-    return W + P
 
 
 def building(c: Canvas, x0: float, x1: float, y_top: float, y_bot: float, slit: float = 5.0) -> None:
@@ -410,40 +307,6 @@ def building(c: Canvas, x0: float, x1: float, y_top: float, y_bot: float, slit: 
         while x < x1 - slit * 0.6:
             c.path(f"M{f2(x)},{f2(ya)} L{f2(x)},{f2(yb)}", sw=HAIR * 1.3)
             x += slit
-
-
-def tower(w: float, h: float, seed: int = 5, birds_n: int = 0, wall: bool = False, sun: bool = False,
-          cat: bool = False, night: bool = False, leaves: int = 0, campus: bool = False, tx: float | None = None) -> str:
-    """鄞中钟楼配飞鸟、红墙、落日、草地上的猫、星星或银杏叶；campus=True 时两侧加教学楼。"""
-    rng = random.Random(seed)
-    c = Canvas(w, h)
-    ground = h * 0.8
-    H = min(h * 0.72, w * 0.62)                    # 钟楼高，顶上留白
-    txx = w * (tx if tx is not None else (0.26 if (cat or wall) else 0.5)) - 0.141 * H
-    if sun:
-        r = min(h * 0.2, w * 0.14)
-        circle(c, w * 0.68, ground - r * 0.5, r)
-        streak(c, w * 0.5, ground - r * 1.6, w * 0.92, ground - r * 1.85, thick=1.3)
-    if night:
-        stars(c, rng, round(w * h / 5200), w * 0.45, w, 0, h * 0.35)
-        c.path(f"M{f2(w * 0.8)},{f2(h * 0.1)} L{f2(w * 0.85)},{f2(h * 0.088)}", sw=THIN)
-    if campus:
-        building(c, -4, txx - w * 0.01, ground - H * 0.34, ground + 4)
-        building(c, txx + 0.29 * H + w * 0.03, w * 0.74, ground - H * 0.26, ground + 4, slit=4.2)
-        building(c, w * 0.74, w + 4, ground - H * 0.2, ground + 4, slit=6)
-    clock_tower(c, txx, ground + 4, H)
-    if wall:
-        brick_wall(c, -2, ground - h * 0.13, txx + 0.29 * H + w * 0.2, ground + 4)
-    for _ in range(birds_n):
-        bird(c, rng.uniform(0.48, 0.95) * w, rng.uniform(0.1, 0.6) * h, rng.uniform(4, 9), rng, sw=THIN)
-    rows = max(8, round((h - ground) / 3.6))
-    ridge_rows(c, 0, w, ground, h + 4, rows, rng, amp=0.55, density=0.8, persp=1.35)
-    if cat:
-        cat_back(c, w * 0.66, ground + (h - ground) * 0.55, min(h * 0.1, 30))
-    for _ in range(leaves):
-        s = rng.uniform(10, 22)
-        ginkgo_leaf(c, rng.uniform(0.05, 0.95) * w, rng.uniform(0.08, 0.72) * h, s, rng.uniform(-2.4, 2.4))
-    return c.svg()
 
 
 # ---------------------------------------------------------------- 山峦
@@ -1121,70 +984,6 @@ def old_tree(w: float, h: float, seed: int = 18) -> str:
     return c.svg()
 
 
-# ---------------------------------------------------------------- 窗外
-
-def window_view(w: float, h: float, seed: int = 19) -> str:
-    """砖墙上一扇推开的窗：窗外是城市天际线、海平线、飞鸟与飘进来的银杏叶。"""
-    rng = random.Random(seed)
-    c = Canvas(w, h)
-    brick_wall(c, -2, -2, w + 2, h + 2, course=6.2)
-    ww, wh = min(w * 0.56, h * 0.72), h * 0.74
-    x0, y0 = w / 2 - ww / 2, h * 0.08
-    x1, y1 = x0 + ww, y0 + wh
-    c.path(poly([(x0, y0), (x1, y0), (x1, y1), (x0, y1)], closed=True), sw=MAIN, fill="#fff")
-    # 窗外：天际线、海、太阳、飞鸟
-    hy = y0 + wh * 0.62
-    sub = Canvas(w, h)
-    r = ww * 0.1
-    circle(sub, x0 + ww * 0.7, hy - wh * 0.28, r)
-    streak(sub, x0 + ww * 0.08, y0 + wh * 0.16, x0 + ww * 0.5, y0 + wh * 0.1, thick=1.0)
-    x = x0 - 2
-    while x < x1:
-        bw = rng.uniform(10, 26)
-        bh = rng.uniform(8, 40) * (1.4 if abs(x - (x0 + ww * 0.35)) < 30 else 1)
-        sub.path(poly([(x, hy), (x, hy - bh), (x + bw, hy - bh), (x + bw, hy)], closed=True), sw=THIN, fill="#fff")
-        yy = hy - bh + 4
-        while yy < hy - 3:
-            sub.path(f"M{f2(x + 3)},{f2(yy)} L{f2(x + bw - 3)},{f2(yy)}", sw=HAIR)
-            yy += 5
-        x += bw + rng.uniform(1, 6)
-    sub.path(f"M{f2(x0)},{f2(hy)} L{f2(x1)},{f2(hy)}", sw=THIN)
-    for i in range(1, 12):
-        tt = i / 11
-        y = hy + (y1 - hy) * tt ** 1.4
-        ph = rng.uniform(0, math.tau)
-        sub.path(poly([(xx, y + (0.4 + 1.6 * tt) * math.sin(xx / (12 + 25 * tt) + ph)) for xx in frange(x0, x1, 2)]),
-                 sw=HAIR + (THIN - HAIR) * tt)
-    for _ in range(5):
-        bird(sub, x0 + ww * rng.uniform(0.15, 0.85), y0 + wh * rng.uniform(0.15, 0.45), rng.uniform(3.5, 6.5), rng)
-    c.defs.append(f'<clipPath id="win"><rect x="{f2(x0)}" y="{f2(y0)}" width="{f2(ww)}" height="{f2(wh)}"/></clipPath>')
-    c.add(f'<g clip-path="url(#win)">{"".join(sub.parts)}</g>')
-    # 窗框、中梃、向外推开的上悬窗扇
-    fr = 7
-    c.path(poly([(x0, y0), (x1, y0), (x1, y1), (x0, y1)], closed=True), sw=MAIN)
-    c.path(poly([(x0 + fr, y0 + fr), (x1 - fr, y0 + fr), (x1 - fr, y1 - fr), (x0 + fr, y1 - fr)], closed=True), sw=THIN)
-    # 两扇向外推开的窗扇：正面看成两侧斜出的平行四边形
-    sw_ = ww * 0.2
-    for side in (-1, 1):
-        ex = x0 if side < 0 else x1
-        ox_ = ex + side * sw_
-        leaf = [(ex, y0 + 2), (ox_, y0 + wh * 0.06), (ox_, y1 - wh * 0.06), (ex, y1 - 2)]
-        c.path(poly(leaf, closed=True), sw=MAIN, fill="#fff")
-        inn = [(ex + side * 5, y0 + 9), (ox_ - side * 5, y0 + wh * 0.06 + 6), (ox_ - side * 5, y1 - wh * 0.06 - 6), (ex + side * 5, y1 - 9)]
-        c.path(poly(inn, closed=True), sw=HAIR)
-        for k in range(3):
-            yy = y0 + wh * (0.25 + 0.2 * k)
-            c.path(f"M{f2(ex + side * 9)},{f2(yy)} L{f2(ex + side * sw_ * 0.55)},{f2(yy - 10)}", sw=HAIR)
-    # 窗台
-    c.path(poly([(x0 - 12, y1), (x1 + 12, y1), (x1 + 16, y1 + 9), (x0 - 16, y1 + 9)], closed=True), sw=MAIN, fill="#fff")
-    for k in range(4):
-        lx = x0 + ww * (0.15 + 0.22 * k) + rng.uniform(-8, 8)
-        ly = y0 + wh * (0.2 + 0.08 * k) + rng.uniform(-6, 6)
-        ginkgo_leaf(c, lx, ly, rng.uniform(10, 15), rng.uniform(-2.4, 2.4))
-    streak(c, x0 + ww * 0.05, y0 + wh * 0.32, x0 + ww * 0.42, y0 + wh * 0.26, thick=0.8)
-    return c.svg()
-
-
 # ---------------------------------------------------------------- 起跑线与旗
 
 def startline(w: float, h: float, seed: int = 20, sun: bool = True) -> str:
@@ -1245,61 +1044,6 @@ def framed_landscape(w: float, h: float, seed: int = 22) -> str:
     # 挂绳
     c.path(f"M{f2(w / 2 - 22)},{f2(y0)} L{f2(w / 2)},{f2(y0 - h * 0.05)} L{f2(w / 2 + 22)},{f2(y0)}", sw=THIN)
     c.add(f'<circle cx="{f2(w / 2)}" cy="{f2(y0 - h * 0.05)}" r="1.6" fill="#000"/>')
-    return c.svg()
-
-
-def shuttle(w: float, h: float, seed: int = 23) -> str:
-    """羽毛球拍与飞行中的羽毛球，几片银杏叶随风。"""
-    rng = random.Random(seed)
-    c = Canvas(w, h)
-    # 球拍：椭圆拍框、拍线、拍杆、握把
-    ry = h * 0.2
-    rx = ry * 0.78
-    cx, cy = w * 0.2, h * 0.3
-    ang = -32
-    g = f'<g transform="rotate({ang} {f2(cx)} {f2(cy)})">'
-    c.add(g)
-    c.add(f'<ellipse cx="{f2(cx)}" cy="{f2(cy)}" rx="{f2(rx)}" ry="{f2(ry)}" fill="#fff" stroke="#000" stroke-width="{MAIN * 1.4}"/>')
-    c.defs.append(f'<clipPath id="strings"><ellipse cx="{f2(cx)}" cy="{f2(cy)}" rx="{f2(rx - 1.5)}" ry="{f2(ry - 1.5)}"/></clipPath>')
-    lines = []
-    for x in frange(cx - rx, cx + rx, 5.2):
-        lines.append(f'<path d="M{f2(x)},{f2(cy - ry)} L{f2(x)},{f2(cy + ry)}" stroke="#000" stroke-width="{HAIR}"/>')
-    for y in frange(cy - ry, cy + ry, 5.2):
-        lines.append(f'<path d="M{f2(cx - rx)},{f2(y)} L{f2(cx + rx)},{f2(y)}" stroke="#000" stroke-width="{HAIR}"/>')
-    c.add(f'<g clip-path="url(#strings)">{"".join(lines)}</g>')
-    c.path(f"M{f2(cx)},{f2(cy + ry)} L{f2(cx)},{f2(cy + ry + h * 0.24)}", sw=MAIN * 1.2)
-    c.path(f"M{f2(cx - 4)},{f2(cy + ry)} Q{f2(cx)},{f2(cy + ry + 10)} {f2(cx + 4)},{f2(cy + ry)}", sw=THIN)
-    gy = cy + ry + h * 0.24
-    c.add(f'<rect x="{f2(cx - 4)}" y="{f2(gy)}" width="8" height="{f2(h * 0.15)}" rx="2.5" fill="#fff" stroke="#000" stroke-width="{MAIN}"/>')
-    for k in range(1, 6):
-        yy = gy + h * 0.15 * k / 6
-        c.path(f"M{f2(cx - 4)},{f2(yy + 2)} L{f2(cx + 4)},{f2(yy - 2)}", sw=HAIR)
-    c.add("</g>")
-    # 羽毛球：球头 + 羽毛裙，朝右上飞
-    sx, sy = w * 0.62, h * 0.3
-    a = math.radians(-18)
-    ca, sa = math.cos(a), math.sin(a)
-
-    def T(u, v):
-        return (sx + u * ca - v * sa, sy + u * sa + v * ca)
-    L = min(h * 0.24, 44)
-    skirt = [T(0, -L * 0.14), T(-L, -L * 0.42), T(-L, L * 0.42), T(0, L * 0.14)]
-    c.path(poly(skirt, closed=True), sw=MAIN, fill="#fff")
-    for k in range(-3, 4):
-        p0, p1 = T(0, k * L * 0.04), T(-L, k * L * 0.12)
-        c.path(f"M{f2(p0[0])},{f2(p0[1])} L{f2(p1[0])},{f2(p1[1])}", sw=HAIR)
-    for u in (0.35, 0.62):
-        q0, q1 = T(-L * u, -L * (0.14 + 0.28 * u)), T(-L * u, L * (0.14 + 0.28 * u))
-        c.path(f"M{f2(q0[0])},{f2(q0[1])} L{f2(q1[0])},{f2(q1[1])}", sw=HAIR)
-    hc = T(L * 0.12, 0)
-    c.add(f'<circle cx="{f2(hc[0])}" cy="{f2(hc[1])}" r="{f2(L * 0.16)}" fill="#fff" stroke="#000" stroke-width="{MAIN}"/>')
-    for k in range(3):
-        o = T(-L * (1.3 + 0.35 * k), -L * 0.3 + k * L * 0.3)
-        e = T(-L * (2.4 + 0.5 * k), -L * 0.3 + k * L * 0.3)
-        c.path(f"M{f2(o[0])},{f2(o[1])} L{f2(e[0])},{f2(e[1])}", sw=HAIR)
-    for _ in range(5):
-        ginkgo_leaf(c, w * rng.uniform(0.45, 0.95), h * rng.uniform(0.45, 0.9), rng.uniform(9, 16), rng.uniform(-2.4, 2.4))
-    streak(c, w * 0.5, h * 0.62, w * 0.9, h * 0.55, thick=1.0)
     return c.svg()
 
 
@@ -1485,54 +1229,6 @@ def lighthouse(w: float, h: float, seed: int = 30) -> str:
             if not (cx - w * 0.19 < x < cx + w * 0.23 and y > sea + h * 0.01):
                 c.path(f"M{f2(x)},{f2(y)} q{f2(step * 0.25)},{f2(-1.5 - r * 0.35)} {f2(step * 0.5)},0", sw=HAIR + r * 0.05)
             x += step * rng.uniform(0.9, 1.4)
-    return c.svg()
-
-
-def pool(w: float, h: float, seed: int = 31) -> str:
-    """最后五十米：俯视的泳道；分道线的浮子近池壁处涂黑，池底黑线到池壁前成 T 字；一道水花冲向终点。"""
-    rng = random.Random(seed)
-    c = Canvas(w, h)
-    lanes = max(3, round(h / 30))
-    ys = [h * (0.04 + 0.92 * k / lanes) for k in range(lanes + 1)]
-    wall = w - 4
-    c.path(f"M{f2(wall)},{f2(-2)} L{f2(wall)},{f2(h + 2)} M{f2(wall + 2.5)},{f2(-2)} L{f2(wall + 2.5)},{f2(h + 2)}", sw=THIN)
-    for i in range(lanes):                                # 池底黑线与 T
-        y = (ys[i] + ys[i + 1]) / 2
-        x1 = wall - w * 0.05
-        c.path(f"M{f2(w * 0.02)},{f2(y)} L{f2(x1)},{f2(y)}", sw=2.4)
-        c.path(f"M{f2(x1)},{f2(y - (ys[1] - ys[0]) * 0.18)} L{f2(x1)},{f2(y + (ys[1] - ys[0]) * 0.18)}", sw=2.4)
-    for y in ys:                                          # 分道线：一串浮子
-        x, k = 3.0, 0
-        while x < wall - 3:
-            near = x > wall - w * 0.12 or x < w * 0.08
-            r = 2.3 if k % 6 else 2.9
-            c.add(f'<ellipse cx="{f2(x)}" cy="{f2(y)}" rx="{f2(r)}" ry="{f2(r * 0.8)}" '
-                  f'fill="{"#000" if near else "#fff"}" stroke="#000" stroke-width="{HAIR}"/>')
-            x += 5.6
-            k += 1
-    # 水面细纹
-    for _ in range(int(w * h / 1100)):
-        x, y = rng.uniform(10, wall - 20), rng.uniform(4, h - 4)
-        if min(abs(y - yy) for yy in ys) < 4:
-            continue
-        s = rng.uniform(3, 6)
-        c.path(f"M{f2(x)},{f2(y)} q{f2(s * 0.5)},-1.2 {f2(s)},0 q{f2(s * 0.5)},1.2 {f2(s)},0", sw=HAIR)
-    # 冲刺的泳者：头、划水的手臂、身后的尾浪
-    lane = lanes // 2
-    y = (ys[lane] + ys[lane + 1]) / 2
-    lh = ys[1] - ys[0]
-    hx = wall - w * 0.16
-    for k in range(6):                                     # 尾浪
-        dx = 7 + k * 9
-        c.path(f"M{f2(hx - dx)},{f2(y - lh * (0.1 + 0.05 * k))} q{f2(-4)},{f2(lh * (0.1 + 0.05 * k))} 0,{f2(lh * (0.2 + 0.1 * k))}",
-               sw=HAIR if k > 2 else THIN)
-    c.path(f"M{f2(hx - 3)},{f2(y - lh * 0.05)} C{f2(hx + 6)},{f2(y - lh * 0.42)} {f2(hx + 18)},{f2(y - lh * 0.36)} "
-           f"{f2(hx + 22)},{f2(y - lh * 0.08)}", sw=MAIN)
-    circle(c, hx, y + lh * 0.04, lh * 0.13)
-    for _ in range(7):
-        a = rng.uniform(-1.3, 1.3)
-        r = rng.uniform(lh * 0.22, lh * 0.36)
-        c.add(f'<circle cx="{f2(hx + 22 + r * math.cos(a) * 0.6)}" cy="{f2(y - lh * 0.08 + r * math.sin(a))}" r="0.7" fill="#000"/>')
     return c.svg()
 
 
@@ -2001,51 +1697,6 @@ def bench(w: float, h: float, seed: int = 38) -> str:
     return c.svg()
 
 
-def ivy_leaf(c: Canvas, x: float, y: float, s: float, ang: float) -> None:
-    """藤叶：心形小叶，(x, y) 为叶柄处。"""
-    ca, sa = math.cos(ang), math.sin(ang)
-
-    def T(px, py):
-        return f"{f2(x + px * ca - py * sa)},{f2(y + px * sa + py * ca)}"
-    c.path(f"M{T(0, 0)} C{T(-s * 0.9, -s * 0.2)} {T(-s * 0.7, -s * 1.1)} {T(0, -s * 1.25)} "
-           f"C{T(s * 0.7, -s * 1.1)} {T(s * 0.9, -s * 0.2)} {T(0, 0)}Z", sw=HAIR, fill="#fff")
-    c.path(f"M{T(0, 0)} L{T(0, -s)}", sw=HAIR)
-
-
-def brick_ivy(w: float, h: float, seed: int = 40) -> str:
-    """青春颂：「红砖覆上幽香」「丘原白鸟入楼」——鄞中的红砖墙与花格砖窗，藤蔓爬上墙，几只白鸟飞过。"""
-    rng = random.Random(seed)
-    c = Canvas(w, h)
-    y0 = h * 0.22
-    brick_wall(c, -2, y0, w + 2, h + 2, course=max(4.6, h / 40))
-    # 花格砖窗：菱形镂空排成方阵
-    px0, px1, py0, py1 = w * 0.48, w * 0.8, y0 + h * 0.12, h * 0.9
-    c.path(poly([(px0, py0), (px1, py0), (px1, py1), (px0, py1)], closed=True), sw=MAIN, fill="#fff")
-    cell = (py1 - py0) / max(4, round((py1 - py0) / 16))
-    y = py0 + cell / 2
-    while y < py1 - cell * 0.3:
-        x = px0 + cell / 2
-        while x < px1 - cell * 0.3:
-            d = cell * 0.36
-            c.path(poly([(x, y - d), (x + d, y), (x, y + d), (x - d, y)], closed=True), sw=0, fill="#000")
-            x += cell
-        y += cell
-    c.path(poly([(px0 - 3, py1), (px1 + 3, py1), (px1 + 3, py1 + 3.5), (px0 - 3, py1 + 3.5)], closed=True), sw=THIN, fill="#fff")
-    # 藤蔓：从左下角爬上墙头
-    vine = [(-4, h * 0.98), (w * 0.08, h * 0.72), (w * 0.05, h * 0.5), (w * 0.14, h * 0.36), (w * 0.24, y0 + 2), (w * 0.36, y0 - 4)]
-    c.path(smooth(vine), sw=THIN)
-    for (xa, ya), (xb, yb) in zip(vine, vine[1:]):
-        for _ in range(5):
-            t = rng.random()
-            x, y = xa + (xb - xa) * t, ya + (yb - ya) * t
-            ivy_leaf(c, x, y, rng.uniform(4.5, 7), rng.uniform(-2.2, 2.2))
-    # 白鸟
-    for k in range(4):
-        bird(c, w * (0.6 + 0.09 * k) + rng.uniform(-6, 6), y0 * (0.75 - 0.12 * k) + rng.uniform(-3, 3),
-             rng.uniform(5, 8), rng, sw=THIN)
-    return c.svg()
-
-
 def plane_leaf(c: Canvas, x: float, y: float, s: float, ang: float, sw: float = THIN) -> None:
     """悬铃木（梧桐）叶：五个尖裂片，叶脉从叶基放射，叶柄朝下；(x, y) 为叶基，ang 为整片的转角。"""
     ca, sa = math.cos(ang), math.sin(ang)
@@ -2186,8 +1837,6 @@ PATTERNS = {
     "cloudsea": cloudsea,
     "seawaves": seawaves,
     "ginkgo": ginkgo,
-    "track": track,
-    "tower": tower,
     "mountains": mountains,
     "moon_bamboo": moon_bamboo,
     "moon_lake": moon_lake,
@@ -2199,15 +1848,12 @@ PATTERNS = {
     "origami_tiger": origami_tiger,
     "gulou": gulou,
     "old_tree": old_tree,
-    "window_view": window_view,
     "startline": startline,
-    "shuttle": shuttle,
     "book_leaf": book_leaf,
     "letter": letter,
     "willow": willow,
     "ink_ridges": ink_ridges,
     "lighthouse": lighthouse,
-    "pool": pool,
     "cat_sakura": cat_sakura,
     "desk_lamp": desk_lamp,
     "scroll": scroll,
@@ -2216,7 +1862,6 @@ PATTERNS = {
     "jiangnan_moon": jiangnan_moon,
     "bench": bench,
     "falling_leaf": falling_leaf,
-    "brick_ivy": brick_ivy,
 }
 
 

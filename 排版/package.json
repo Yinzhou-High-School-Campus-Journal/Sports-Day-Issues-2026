@@ -6,12 +6,6 @@
   "engines": {
     "node": ">=24 <25"
   },
-  "scripts": {
-    "covers": "python3 封面/build.py",
-    "build": "python3 release.py",
-    "build:1": "python3 release.py 第一期",
-    "build:2": "python3 release.py 第二期"
-  },
   "devDependencies": {
     "playwright": "1.56.1"
   },

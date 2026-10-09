@@ -9,7 +9,6 @@ __pycache__/
 排版/fonts/YZ*.ttf
 排版/**/*.tmp
 排版/**/*.tmp.pdf
-排版/**/*.tmp.html
 排版/art预览/
 排版/第一期/*.html
 排版/第一期/*.pdf
@@ -19,6 +18,5 @@ __pycache__/
 排版/第二期/*.pdf
 排版/第二期/*版面.json
 排版/第二期/images/
-排版/封面/*.html
 排版/封面/*.pdf
 排版/封面/*.png
