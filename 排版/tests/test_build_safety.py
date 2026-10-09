@@ -130,13 +130,14 @@ class BuildSafety(unittest.TestCase):
         self.assertEqual([b.kind for b in blocks], ["p", "h", "p", "img", "img", "p"])
         self.assertEqual([b.text for b in blocks if b.kind == "p"], ["第一段", "第二段", "第三段"])
 
-    def test_generated_font_matches_manifest(self):
-        name = "YZLatin-Italic-350.ttf"
-        expected = json.loads((preflight.FONTS / "manifest.json").read_text(encoding="utf-8"))[name]
-        with tempfile.TemporaryDirectory() as tmp:
-            dest = Path(tmp) / name
-            preflight.make_static_font(name, dest)
-            self.assertEqual(hashlib.sha256(dest.read_bytes()).hexdigest(), expected)
+    def test_generated_fonts_match_manifest(self):
+        expected = json.loads((preflight.FONTS / "manifest.json").read_text(encoding="utf-8"))
+        for name, make in [("YZLatin-Italic-350.ttf", preflight.make_static_font),
+                           ("YZFangSong-Supplement-R.ttf", preflight.make_supplement_font)]:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                dest = Path(tmp) / name
+                make(name, dest)
+                self.assertEqual(hashlib.sha256(dest.read_bytes()).hexdigest(), expected[name])
 
 
 if __name__ == "__main__":

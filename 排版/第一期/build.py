@@ -29,7 +29,8 @@ check_requirements()            # 先核对依赖：没装或版本不对时给�
 import pymupdf
 
 from pdf_metadata import document_metadata, outline_from_html, save_pdf, set_page_labels
-from typeset import LH, Book, Piece, free_lines, inline, load_issue, page_count, parse_staff, piece_pages, render_pdf
+from typeset import (LH, Book, Piece, check_glyphs, fangsong_texts, free_lines, inline, load_issue, page_count,
+                     parse_staff, piece_pages, piece_texts, render_pdf, supplement_css)
 
 ISSUES = {
     "第一期": {
@@ -184,7 +185,8 @@ def build_html(book: Book, issue: str, front: list[Piece], groups: list[tuple[st
         body.extend(book.render_piece(p, fills, pads) for p in items)
     return ("<!doctype html>\n<html lang=\"zh-Hans\">\n<head>\n<meta charset=\"utf-8\">\n"
             f"<title>{cfg['journal']} {issue} {cfg['name']}</title>\n"
-            f'<link rel="stylesheet" href="{book.rel(HERE / "style.css")}">\n</head>\n<body>\n'
+            f'<link rel="stylesheet" href="{book.rel(HERE / "style.css")}">\n'
+            f"<style>\n{supplement_css(book.rel)}</style>\n</head>\n<body>\n"
             + "\n\n".join(body) + "\n</body>\n</html>\n")
 
 
@@ -249,6 +251,10 @@ def build(issue: str) -> None:
     raw = OUT_DIR / f"{issue}.tmp.pdf"          # Chromium 的输出；成品在 finalize() 里写出
     front, groups, back = load_issue(issue, cfg)
     pieces = {p.pid: p for p in front + [x for _, items in groups for x in items] + back}
+    staff = [(ROOT / issue / key).parent.joinpath(s["staff"]).read_text(encoding="utf-8")
+             for key, specs in FILLS.items() for s in specs if "staff" in s]
+    check_glyphs([t for p in pieces.values() for t in piece_texts(p)] + staff,
+                 fangsong_texts(list(pieces.values())) + staff + [name for name, _ in groups])
 
     pages: dict[str, int] = {}
     fills: dict[str, dict[int, int]] = {}      # pid → {配图序号: 行数}

@@ -16,6 +16,7 @@ from PIL import Image, ImageFilter, ImageOps
 
 import art
 from pdf_metadata import outline_from_html
+from preflight import FANGSONG_SUPPLEMENT, FONTS, SUPPLEMENT_FONTS
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -213,6 +214,52 @@ def centered(s: str) -> str:
     out = inline(s)
     if s and s[-1] in CLOSE_PUNCT:
         out = out[:-1] + f'<span class="hw">{out[-1]}</span>'
+    return out
+
+
+# ---------------------------------------------------------------- 字形
+
+def supplement_css(rel) -> str:
+    """方正恒仿宋缺的字交给 preflight.py 生成的补字字体，按 unicode-range 只管这几个字。rel：字体文件 → HTML 里的 URL。"""
+    chars = ", ".join(f"U+{ord(c):04X}" for c in FANGSONG_SUPPLEMENT)
+    return "".join(f'@font-face {{ font-family: "YZ FangSong"; src: url("{rel(FONTS / name)}") format("truetype"); '
+                   f"font-weight: {weights}; unicode-range: {chars}; }}\n"
+                   for name, (_, weights) in SUPPLEMENT_FONTS.items())
+
+
+def check_glyphs(texts: list[str], fang_texts: list[str]) -> None:
+    """排版前查字：每个字都要有仓库字体可用，否则 Chromium 会悄悄换用本机字体；用方正恒仿宋排的字（署名、导读、题记、
+    人员表、页眉）缺字时会混进宋体，须在 preflight.FANGSONG_SUPPLEMENT 里补上。"""
+    from fontTools.ttLib import TTFont
+
+    def cmap(name: str) -> set[int]:
+        return set(TTFont(FONTS / name, lazy=True).getBestCmap())
+    covered = cmap("NotoSerifSC-VF.ttf") | cmap("NotoSerif-VF.ttf") | cmap("CONSTAN.TTF")
+    fang = cmap("FZHengFSJF-R.TTF") & cmap("FZHengFSJF-M.TTF") | {ord(c) for c in FANGSONG_SUPPLEMENT}
+    missing = sorted({c for t in texts for c in t if ord(c) >= 0x20 and ord(c) not in covered})
+    if missing:
+        raise RuntimeError("仓库字体里没有这些字，Chromium 会换用本机字体：" + "".join(missing))
+    # 只查汉字和全角符号；西文、数字由 YZ Latin 按 unicode-range 接管
+    cjk = sorted({c for t in fang_texts for c in t if 0x3000 <= ord(c) <= 0x9FFF or 0xF900 <= ord(c) <= 0xFFEF
+                  or ord(c) >= 0x20000} - {chr(u) for u in fang})
+    if cjk:
+        raise RuntimeError("方正恒仿宋缺这些字，请在 preflight.py 的 FANGSONG_SUPPLEMENT 里补上：" + "".join(cjk))
+
+
+def piece_texts(piece: Piece) -> list[str]:
+    out = [piece.title, piece.subtitle, piece.cls, piece.name]
+    for b in piece.blocks:
+        out += [b.text, *b.lines, *(l for s in b.stanzas for l in s)]
+    return out
+
+
+def fangsong_texts(pieces: list[Piece]) -> list[str]:
+    """用方正恒仿宋排的稿件文字：署名、板块导读的正文、篇首题记。"""
+    out = [p.name for p in pieces]
+    for p in pieces:
+        for b in p.blocks:
+            if p.kind == "opener" or b.kind == "epigraph":
+                out += [b.text, *b.lines]
     return out
 
 

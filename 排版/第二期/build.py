@@ -30,7 +30,8 @@ check_requirements()            # 先核对依赖：没装或版本不对时给�
 import pymupdf
 
 from pdf_metadata import document_metadata, outline_from_html, save_pdf, set_page_labels
-from typeset import Book, Piece, free_lines, inline, load_issue, page_count, parse_staff, piece_pages, render_pdf
+from typeset import (Book, Piece, check_glyphs, fangsong_texts, free_lines, inline, load_issue, page_count,
+                     parse_staff, piece_pages, piece_texts, render_pdf, supplement_css)
 
 # 各期配置。sections 为板块目录，去掉「1_」这类序号前缀即印出的板块名；
 # 板块目录里序号为 0 的稿件（00_导读.md）排成板块起始页。
@@ -209,7 +210,7 @@ def build_html(book: Book, issue: str, front: list[Piece], groups: list[tuple[st
     return ("<!doctype html>\n<html lang=\"zh-Hans\">\n<head>\n<meta charset=\"utf-8\">\n"
             f"<title>{title}</title>\n"
             f'<link rel="stylesheet" href="{book.rel(HERE / "style.css")}">\n'
-            f"<style>\n{section_pages_css(cfg)}\n</style>\n</head>\n<body>\n"
+            f"<style>\n{supplement_css(book.rel)}{section_pages_css(cfg)}\n</style>\n</head>\n<body>\n"
             + "\n\n".join(body) + "\n</body>\n</html>\n")
 
 
@@ -288,6 +289,9 @@ def build(issue: str) -> None:
     pdf_path = OUT_DIR / f"{issue}内页.pdf"
     front, groups, back = load_issue(issue, cfg)
     pieces = {p.pid: p for p in front + [x for _, items in groups for x in items] + back}
+    staff = (ROOT / issue / cfg["staff"]).read_text(encoding="utf-8") if cfg.get("staff") else ""
+    check_glyphs([t for p in pieces.values() for t in piece_texts(p)] + [staff],
+                 fangsong_texts(list(pieces.values())) + [staff, cfg["name"]] + [name for name, _ in groups])
 
     phys: dict[str, int] = {}                  # 各篇起始页（PDF 里的第几页）
     pages: dict[str, int] = {}                 # 印出来的页码：扉页、人员表、目录（及空白页）不计页数

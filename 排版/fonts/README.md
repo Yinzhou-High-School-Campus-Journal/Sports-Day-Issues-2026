@@ -8,6 +8,7 @@
 | `YZSong-*.ttf`、`YZLatin-*.ttf` | 由上述可变字体生成的静态字重，构建时自动生成，不提交 |
 | `CONSTAN*.TTF` | Constantia：成段西文、页码等 |
 | `FZHengFSJF-*.TTF` | 方正恒仿宋：作者署名、导读、人员表 |
+| `YZFangSong-Supplement-*.ttf` | 方正恒仿宋缺的字，由同一字体的部件拼成，构建时自动生成，不提交 |
 | `封面/CoverSong-*.ttf`、`封面/CoverLatin-*.ttf` | 封面用的思源宋体与 Noto Serif 字形子集 |
 | `FW筑紫E老明朝.TTF`、`金陵刻经W.ttf` | 封面期名与印章 |
 
