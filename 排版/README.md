@@ -67,9 +67,28 @@ node tests/check_browser_geometry.cjs
 
 1. 把仓库文档里指向 Release 的下载链接改成新版本的 tag（用日期，如 `2026.10.10`），提交到 `main`。
 2. 在仓库的 Actions 页选「制作编辑部版」，对 `main` 点 Run workflow。工作流按锁定的版本安装 Python、Node、依赖与 Chromium，跑回归检查，连做两遍核对逐字节相同，再为四个发行文件生成构建来源证明。
-3. 在运行页下载产物 `Sports_Day_Issues_2026_ED`（已按发行名命名的四个 ED 文件和 `SHA256SUMS`），以这次运行所用的提交为 tag 目标新建 Release，上传这四个文件，以及上一版未变的两份 `Print` PDF 和两张 `Cover_Print` 图片，共 8 个文件（`SHA256SUMS` 只用于核对，不上传）；说明里附上运行链接。
+3. 在运行页下载产物 `Sports_Day_Issues_2026_ED`（已按发行名命名的四个 ED 文件和 `SHA256SUMS`），以这次运行所用的提交为 tag 目标新建 Release，上传这四个文件，以及上一版未变的两份 `Print` PDF 和两张 `Cover_Print` 图片，共 8 个文件（`SHA256SUMS` 只用于核对，不上传）。
+4. Release 说明里写上运行链接、构建来源证明的链接（生成证明那一步的日志里有），以及这个提交的 `SOURCE_DATE_EPOCH`（`git log -1 --format=%ct <提交>`），供用源码包重建的人使用。
 
-`gh attestation verify <文件> -R Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026` 可以核对文件出自哪次运行、哪个提交；也可以在 Linux 上用同一提交重新制作，比对 SHA-256。仓库归档后只读，工作流不能再运行，需要时可以 fork 后照样运行。
+同一天要再发一版时，先取下当天 Release 里的 `Print` 文件，删掉当天的 Release 和 tag，再按上面的步骤重发，并在说明里注明是重新发布、与先前的文件差在哪里。
+
+这些步骤也可以用命令行完成：
+
+```bash
+gh workflow run build.yml --ref main
+gh run list --workflow build.yml --limit 1        # 查运行编号
+gh run watch <运行编号> --exit-status
+gh run download <运行编号> -n Sports_Day_Issues_2026_ED -D ED
+gh release download <上一版的 tag> -p '*Print*' -D Print
+gh release delete <tag> --cleanup-tag             # 只在同一天重发时
+gh release create <tag> --target <提交> --title <tag> --latest --notes-file <说明文件> ED/*.pdf Print/*
+```
+
+`gh attestation verify <文件> -R Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026` 可以核对文件出自哪次运行、哪个提交；也可以在 Linux 上用同一提交重新制作，比对 SHA-256。
+
+工作流整个 job 都开了 `id-token: write`：生成来源证明要靠它向 GitHub 申请签名用的令牌，但安装依赖、制作等步骤也能申请到。依赖和 action 都锁定了版本，工作流也只能手动运行，风险很小；要更稳妥，可以把生成来源证明拆成单独的 job，只让它拿这个权限。
+
+仓库归档后只读，工作流不能再运行，需要时可以 fork 后照样运行。
 
 ### 流程
 
