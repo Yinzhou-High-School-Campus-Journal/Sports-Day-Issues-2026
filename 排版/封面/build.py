@@ -9,7 +9,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
-from preflight import check_requirements, prepare_fonts, require_single_page, sources_unchanged
+from preflight import check_pdf_fonts, check_requirements, prepare_fonts, require_single_page, sources_unchanged
 check_requirements()            # 先核对依赖：没装或版本不对时给出安装提示，而不是在下面导入时报错
 
 import pymupdf
@@ -32,6 +32,7 @@ def main() -> None:
             pdf = tmp / f"{name}.pdf"
             subprocess.run([sys.executable, str(script), f"mode={mode}", f"out={html}"], check=True)
             subprocess.run(["node", str(HERE / "render.cjs"), str(html), str(raw), str(png)], check=True)
+            check_pdf_fonts(raw)            # 封面用的思源宋体是子集，改了文字而子集缺字时在这里报错
             with pymupdf.open(raw) as doc:
                 doc.set_metadata(document_metadata(issue, "封面" if mode == "cover" else "扉页",
                                                    doc.metadata.get("producer", "")))

@@ -85,11 +85,37 @@ class BuildSafety(unittest.TestCase):
             (tmp / "manifest.json").write_text(json.dumps({"test.ttf": expected}))
             (tmp / "test.ttf").write_bytes(b"different version")
             with patch.object(preflight, "FONTS", tmp):
-                with self.assertRaisesRegex(RuntimeError, "字体版本不符"):
+                with self.assertRaisesRegex(RuntimeError, "字体版本不符.*请从仓库恢复"):
                     preflight.check_fonts()
                 (tmp / "test.ttf").unlink()
                 with self.assertRaisesRegex(RuntimeError, "缺少字体"):
                     preflight.check_fonts()
+                # 构建时生成的字体不一致（如拉取了改动补字的提交）：提示删掉重建，而不是从仓库恢复
+                (tmp / "manifest.json").write_text(json.dumps({"YZFangSong-Supplement-R.ttf": expected}))
+                (tmp / "YZFangSong-Supplement-R.ttf").write_bytes(b"older build")
+                with self.assertRaisesRegex(RuntimeError, "字体版本不符.*删掉后重新运行"):
+                    preflight.check_fonts()
+
+    def test_pdf_with_fonts_outside_the_repo_is_fatal(self):
+        import pymupdf
+
+        def make(path, *fallback):
+            doc = pymupdf.open()
+            page = doc.new_page()
+            page.insert_font(fontname="F0", fontfile=str(preflight.FONTS / "CONSTAN.TTF"))
+            page.insert_text((72, 72), "Sports Day", fontname="F0")
+            for text in fallback:
+                page.insert_text((72, 144), text, fontname="helv")      # 不在仓库里的字体
+            doc.save(path)
+            return path
+
+        # PyMuPDF 嵌入时用的名字是「Constantia Regular」，Chromium 用的是 PostScript 名，这里直接给定允许的名字；
+        # 也免得在生成静态字重之前读取它们
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch.object(preflight, "repo_font_names", return_value=frozenset({"Constantia Regular"})):
+            preflight.check_pdf_fonts(make(Path(tmp) / "a.pdf"))
+            with self.assertRaisesRegex(RuntimeError, "Helvetica.*第 1 页.*fallback"):
+                preflight.check_pdf_fonts(make(Path(tmp) / "b.pdf", "fallback"))
 
     def test_requirements_allow_comments_and_blank_lines(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -123,6 +149,20 @@ class BuildSafety(unittest.TestCase):
         import typeset
         book = typeset.Book(Path("/out"), {}, {})
         self.assertEqual(book.rel(Path("/out/images/a#b?c%d.jpg")), "images/a%23b%3Fc%25d.jpg")
+
+    def test_second_issue_front_pages_keep_body_on_a_right_page(self):
+        module = load_issue("第二期")
+        # 目录一页：扉页、人员表、目录共三页，补一页空白，正文第 1 页是第 5 页
+        self.assertEqual(module.front_pages({"toc": 3, "p01": 5}, {"toc": (3, 3)}, [], True, True),
+                         {1: "扉页", 2: "人员表", 3: "目录", 4: "空白页"})
+        # 目录两页：不补空白，正文第 1 页仍是第 5 页
+        self.assertEqual(module.front_pages({"toc": 3, "p01": 5}, {"toc": (3, 4)}, [], True, False),
+                         {1: "扉页", 2: "人员表", 3: "目录", 4: "目录"})
+        self.assertEqual(module.printed_page(5, {1: "扉页", 2: "人员表", 3: "目录", 4: "目录"}), 1)
+
+    def test_bookmark_titles_match_rendered_titles(self):
+        import typeset
+        self.assertEqual(typeset.plain("读 *Drown* 有感：A & B」"), "读 Drown 有感：A & B」")
 
     def test_headings_and_images_need_no_blank_line(self):
         import typeset

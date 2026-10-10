@@ -16,7 +16,7 @@ from PIL import Image, ImageFilter, ImageOps
 
 import art
 from pdf_metadata import outline_from_html
-from preflight import FANGSONG_SUPPLEMENT, FONTS, SUPPLEMENT_FONTS
+from preflight import FANGSONG_SUPPLEMENT, FONTS, SUPPLEMENT_FONTS, check_pdf_fonts
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -182,7 +182,7 @@ def load_issue(issue: str, cfg: dict) -> tuple[list[Piece], list[tuple[str, list
     groups = []
     for k, sec in enumerate(cfg["sections"], 1):
         name = re.sub(r"^\d+_", "", sec)
-        items = [parse_piece(f) for f in sorted((base / sec).glob("*.md"), key=num_prefix)]
+        items = [parse_piece(f) for f in sorted((base / sec).glob("*.md"), key=lambda f: (num_prefix(f), f.name))]
         for it in items:
             it.section = name
             it.page = cfg.get("page_classes", {}).get(name, f"sec{k}")
@@ -215,6 +215,11 @@ def centered(s: str) -> str:
     if s and s[-1] in CLOSE_PUNCT:
         out = out[:-1] + f'<span class="hw">{out[-1]}</span>'
     return out
+
+
+def plain(s: str) -> str:
+    """标题在 HTML 里显示出来的文字（*西文书名* 去掉星号），与 pdf_metadata.html_headings() 取出的书签文字一致。"""
+    return html.unescape(re.sub(r"<[^>]+>", "", inline(s))).strip()
 
 
 # ---------------------------------------------------------------- 字形
@@ -267,6 +272,7 @@ def fangsong_texts(pieces: list[Piece]) -> list[str]:
 
 def render_pdf(html_path: Path, pdf_path: Path) -> None:
     subprocess.run(["node", str(HERE / "render.cjs"), str(html_path), str(pdf_path)], check=True)
+    check_pdf_fonts(pdf_path)
 
 
 def piece_pages(pdf_path: Path, front: list[Piece], groups: list[tuple[str, list[Piece]]], back: list[Piece],
@@ -280,7 +286,7 @@ def piece_pages(pdf_path: Path, front: list[Piece], groups: list[tuple[str, list
     starts: dict[str, int] = {}
     j = 0
     for pid, title in order:
-        while j < len(tops) and tops[j][0].strip() != title.strip():
+        while j < len(tops) and tops[j][0].strip() != plain(title):
             j += 1
         if j == len(tops):
             raise RuntimeError(f"书签里找不到《{title}》")

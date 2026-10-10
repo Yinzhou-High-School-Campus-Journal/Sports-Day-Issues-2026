@@ -326,6 +326,8 @@ i { font-style: italic; line-height: 1; }
    方正恒仿宋，字号、行距同正文；整块排在版心左上角，不印页码、不计页数 */
 @page plain { counter-increment: page 0; @bottom-center { content: none; } }
 .staff-page { page: plain; }
+/* 空白页：扉页的占位页（拼页时换成另做的扉页）与目录后补的空白页，同样不印页码、不计页数 */
+.blank { page: plain; }
 .staff dl { margin: 0; }
 .staff .e { display: grid; grid-template-columns: max-content var(--staff-names); }
 .staff .thanks dd { width: max-content; }       /* 特别致谢：单位名一行排完，超出姓名栏 */

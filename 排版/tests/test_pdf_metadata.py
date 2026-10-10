@@ -11,7 +11,8 @@ from unittest.mock import patch
 import pymupdf
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from pdf_metadata import ROOT, build_epoch, document_metadata, outline_from_html, save_pdf, set_page_labels
+from pdf_metadata import (ROOT, build_epoch, document_metadata, drop_toc_children, outline_from_html, save_pdf,
+                          set_page_labels)
 
 
 class MetadataConsistency(unittest.TestCase):
@@ -98,6 +99,12 @@ class Outline(unittest.TestCase):
     def test_mismatched_count_is_fatal(self):
         with self.assertRaises(RuntimeError):
             outline_from_html([[1, '甲', 1]], '<h1>甲</h1><h2>乙</h2>')
+
+    def test_toc_page_headings_are_not_bookmarks(self):
+        outline = [[1, '扉页', 1], [1, '目录', 3], [2, '红砖絮语', 3], [2, '赛道秋声', 3],
+                   [1, '红砖絮语', 5], [1, '青春颂', 6], [2, '（一）', 6]]
+        self.assertEqual(drop_toc_children(outline),
+                         [[1, '扉页', 1], [1, '目录', 3], [1, '红砖絮语', 5], [1, '青春颂', 6], [2, '（一）', 6]])
 
 
 if __name__ == '__main__':

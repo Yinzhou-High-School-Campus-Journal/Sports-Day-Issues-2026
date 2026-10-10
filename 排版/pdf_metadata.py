@@ -99,3 +99,16 @@ def outline_from_html(toc: list[list], html_text: str) -> list[list]:
     if len(heads) != len(toc):
         raise RuntimeError(f"书签 {len(toc)} 条，HTML 标题 {len(heads)} 个，无法一一对应")
     return [[entry[0], text, *entry[2:]] for entry, text in zip(toc, heads)]
+
+
+def drop_toc_children(outline: list[list]) -> list[list]:
+    """去掉「目录」下的子书签：目录页里的板块名也是 HTML 标题，Chromium 会为它们生成书签，
+    但都指向目录页，与后面各板块起始页的书签重复。"""
+    out, in_toc = [], False
+    for entry in outline:
+        if entry[0] == 1:
+            in_toc = entry[1] == "目录"
+        elif in_toc:
+            continue
+        out.append(entry)
+    return out

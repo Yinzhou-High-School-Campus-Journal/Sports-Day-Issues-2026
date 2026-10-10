@@ -14,6 +14,8 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
+    env:
+      PYTHONUNBUFFERED: "1"   # Python 不缓冲输出，日志里「生成字体」等信息与子进程的输出按实际先后排列
     defaults:
       run:
         working-directory: 排版

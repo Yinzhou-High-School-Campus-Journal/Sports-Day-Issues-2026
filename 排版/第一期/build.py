@@ -28,7 +28,7 @@ check_requirements()            # 先核对依赖：没装或版本不对时给�
 
 import pymupdf
 
-from pdf_metadata import document_metadata, outline_from_html, save_pdf, set_page_labels
+from pdf_metadata import document_metadata, drop_toc_children, outline_from_html, save_pdf, set_page_labels
 from typeset import (LH, Book, Piece, check_glyphs, fangsong_texts, free_lines, inline, load_issue, page_count,
                      parse_staff, piece_pages, piece_texts, render_pdf, supplement_css)
 
@@ -200,7 +200,7 @@ def finalize(issue: str, raw: Path, html_text: str) -> tuple[Path, Path, Path]:
     require_single_page([cover, title_page])
     body_path = OUT_DIR / f"{issue}正文.pdf"
     with pymupdf.open(raw) as doc:
-        doc.set_toc(outline_from_html(doc.get_toc(simple=False), html_text))
+        doc.set_toc(drop_toc_children(outline_from_html(doc.get_toc(simple=False), html_text)))
         doc.set_metadata(document_metadata(issue, "正文", doc.metadata.get("producer", "")))
         save_pdf(doc, body_path.with_suffix(".tmp.pdf"))
     body_path.with_suffix(".tmp.pdf").replace(body_path)

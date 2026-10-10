@@ -1,10 +1,12 @@
-"""构建前的检查与准备：依赖版本、字体（生成静态字重并校验指纹）、拼页用的单页 PDF，以及来源稿保护。"""
+"""构建前后的检查与准备：依赖版本、字体（生成静态字重并校验指纹）、PDF 只嵌入仓库字体、拼页用的单页 PDF，
+以及来源稿保护。"""
 from __future__ import annotations
 
 import hashlib
 import json
 import re
 from contextlib import contextmanager
+from functools import lru_cache
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
@@ -72,17 +74,65 @@ def check_requirements() -> None:
 
 
 def check_fonts() -> None:
-    """按 manifest.json 逐一核对字体指纹，缺失或不一致时报错。"""
+    """按 manifest.json 逐一核对字体指纹，缺失或不一致时报错。构建时生成的字体（静态字重与补字）不一致，
+    多半是拉取了改动生成方式的提交，删掉后重新运行即会重新生成；其余字体须从仓库恢复。"""
     expected = json.loads((FONTS / "manifest.json").read_text(encoding="utf-8"))
     errors = []
     for name, digest in expected.items():
         path = FONTS / name
+        fix = "删掉后重新运行即可重新生成" if name in INSTANCES or name in SUPPLEMENT_FONTS else "请从仓库恢复"
         if not path.is_file():
-            errors.append(f"缺少字体：{path}")
+            errors.append(f"缺少字体：{path}；{fix}")
         elif hashlib.sha256(path.read_bytes()).hexdigest() != digest:
-            errors.append(f"字体版本不符：{path}")
+            errors.append(f"字体版本不符：{path}；{fix}")
     if errors:
-        raise RuntimeError("\n".join(errors) + "\n源字体请从仓库恢复；生成的静态字重删除后重新构建即可。")
+        raise RuntimeError("\n".join(errors))
+
+
+@lru_cache(maxsize=None)
+def repo_font_names(fonts: Path = FONTS) -> frozenset[str]:
+    """manifest.json 所列字体（含构建时生成的）的 PostScript 名。Chromium 把字体嵌入 PDF 时用的就是这个名字，
+    前面另加「ABCDEF+」形式的子集标记。"""
+    from fontTools.ttLib import TTFont
+    names = json.loads((fonts / "manifest.json").read_text(encoding="utf-8"))
+    return frozenset(TTFont(fonts / name, lazy=True)["name"].getDebugName(6) for name in names)
+
+
+def check_pdf_fonts(path: Path) -> None:
+    """Chromium 输出的 PDF 只能嵌入仓库字体。仓库字体缺字时，Chromium 会悄悄换用本机字体，各台机器装的字体不同，
+    印出来的字形和版面也就不同；Type 3 字体（可变字体和 CFF 轮廓的字体会被打印成这种）印刷预检容易报错。
+    出现这两种字体就报错，列出页码和用到它们的文字。"""
+    import pymupdf              # 在这里才导入：本模块须在依赖装好之前就能载入，好先做 check_requirements()
+    allowed = repo_font_names()
+    pages: dict[tuple[str, str], set[int]] = {}
+    samples: dict[str, str] = {}
+    with pymupdf.open(path) as doc:
+        for page in doc:
+            bad = set()
+            for _, _, kind, basefont, *_ in page.get_fonts(full=True):
+                name = re.sub(r"^[A-Z]{6}\+", "", basefont)
+                if kind == "Type3" or name not in allowed:
+                    pages.setdefault((name, kind), set()).add(page.number + 1)
+                    bad.add(name)
+            if not bad:
+                continue
+            for block in page.get_text("dict")["blocks"]:
+                for line in block.get("lines", []):
+                    for span in line["spans"]:
+                        # PyMuPDF 报告的字体名去掉了子集标记，过长时还会截断
+                        font = re.sub(r"^[A-Z]{6}\+", "", span["font"])
+                        for name in bad:
+                            if font and name.startswith(font) and len(samples.get(name, "")) < 20:
+                                samples[name] = samples.get(name, "") + span["text"].strip()
+    if pages:
+        lines = []
+        for (name, kind), nums in sorted(pages.items()):
+            where = "、".join(str(n) for n in sorted(nums)[:10]) + ("等" if len(nums) > 10 else "")
+            sample = samples.get(name, "")[:20]
+            lines.append(f"  {name or '无名字体'}（{kind}）：第 {where} 页" + (f"，如「{sample}」" if sample else ""))
+        raise RuntimeError(f"{path.name} 里有仓库以外的字体或 Type 3 字体：\n" + "\n".join(lines) +
+                           "\n多半是仓库字体缺字，Chromium 换用了本机字体：方正恒仿宋缺的字在 preflight.py 的 "
+                           "FANGSONG_SUPPLEMENT 里补上，其他字体缺字须换用有这个字的字体")
 
 
 def _set_names(font, family: str, style: str) -> None:

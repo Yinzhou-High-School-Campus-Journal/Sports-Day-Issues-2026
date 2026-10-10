@@ -8,7 +8,7 @@
 2. 调用 Chromium（排版/render.cjs，两期共用）打印成 PDF；
 3. 从 PDF 书签读出每篇的起止页，回填目录页码；量出每篇末页剩下几行，
    按 FILLS 的配置在留白处放插图（线描按实际尺寸生成，照片按尺寸裁切），再排，直到版面稳定；
-4. 拼上扉页，写入书签、PDF 元数据和页码标签。
+4. 换上另做的扉页，写入书签、PDF 元数据和页码标签。
 稿件解析、配图与版面测量两期共用，见 排版/typeset.py。
 """
 from __future__ import annotations
@@ -29,14 +29,15 @@ check_requirements()            # 先核对依赖：没装或版本不对时给�
 
 import pymupdf
 
-from pdf_metadata import document_metadata, outline_from_html, save_pdf, set_page_labels
+from pdf_metadata import document_metadata, drop_toc_children, outline_from_html, save_pdf, set_page_labels
 from typeset import (Book, Piece, check_glyphs, fangsong_texts, free_lines, inline, load_issue, page_count,
                      parse_staff, piece_pages, piece_texts, render_pdf, supplement_css)
 
 # 各期配置。sections 为板块目录，去掉「1_」这类序号前缀即印出的板块名；
 # 板块目录里序号为 0 的稿件（00_导读.md）排成板块起始页。
 # 内页开头：扉页（右页）、人员表（左页）、目录（右页）、空白页（左页）不印页码、不计页数，其后的第一页（右页）为第 1 页。
-# Chromium 只排人员表以后的部分；扉页和凑双数的空白页在 finalize() 里拼上。
+# Chromium 从扉页排起：扉页的位置先放一页空白，finalize() 里换成另做的扉页；扉页到目录共奇数页时，目录后补一页空白
+# （目录排成两页就不补）。这样 Chromium 排版时的左右页与成品一致，左右页页眉不会错位。
 ISSUES = {
     "第二期": {
         "journal": "校运会特刊",
@@ -44,7 +45,7 @@ ISSUES = {
         "front": [],                    # 目录之前的稿件：这期不放卷首语、致辞
         "sections": ["1_红砖絮语", "2_赛道秋声", "3_青衿问道", "4_思接千载"],
         "back": ["卷尾语.md"],          # 全刊最后
-        "title_page": "排版/封面/第二期扉页.pdf",  # 另做的扉页，拼在内页最前
+        "title_page": "排版/封面/第二期扉页.pdf",  # 另做的扉页，换掉内页第 1 页的占位空白页
         "staff": "0_前置/01_人员表.md",           # 扉页背面，在目录前（封面另做）
         "toc_class": True,              # 目录标班级
     },
@@ -124,7 +125,7 @@ STAFF_NAME_EM = 7                # 人员表姓名栏宽：两个三字名加一
 
 
 def render_staff(issue: str) -> str:
-    """人员表单占一页（扉页背面，左页；扉页在 finalize() 里拼上）。仿老师发来的付印版的竖式：窄窄一栏，每行至多两个姓名，转行与首个姓名对齐；
+    """人员表单占一页（扉页背面，左页；扉页在 finalize() 里换上）。仿老师发来的付印版的竖式：窄窄一栏，每行至多两个姓名，转行与首个姓名对齐；
     职务撑成同宽，冒号、姓名上下对齐。「特别致谢」紧接着排在最后一行，单位名不折行。
     整块排在版心左上角，从第一行起，基线落在行线上。"""
     cfg = ISSUES[issue]
@@ -195,14 +196,21 @@ def section_pages_css(cfg: dict) -> str:
     return "\n".join(out)
 
 
+BLANK = '<section class="piece blank" aria-hidden="true"></section>'    # 一页空白，不印页码、不计页数
+
+
 def build_html(book: Book, issue: str, front: list[Piece], groups: list[tuple[str, list[Piece]]], back: list[Piece],
                pages: dict[str, int], fills: dict[str, dict[int, int]], pads: dict[str, dict[int, int]],
-               tops: dict[str, int]) -> str:
-    """pages 为各篇印出来的页码（目录、人员表不计页数，其后的第一页是第 1 页）。"""
+               tops: dict[str, int], pad: bool) -> str:
+    """pages 为各篇印出来的页码（扉页、人员表、目录与其后的空白页不计页数，再往后的第一页是第 1 页）。
+    扉页的位置先放一页空白，拼页时换成另做的扉页；pad 为 True 时在目录后补一页空白。"""
     cfg = ISSUES[issue]
-    body = [render_staff(issue)] if cfg.get("staff") else []
+    body = [BLANK] if cfg.get("title_page") else []
+    body += [render_staff(issue)] if cfg.get("staff") else []
     body += [book.render_piece(p, fills, pads, tops) for p in front]
     body.append(render_toc(front, groups, pages, cfg.get("toc_class", False), back))
+    if pad:
+        body.append(BLANK)
     for _, items in groups:
         body.extend(book.render_piece(p, fills, pads, tops) for p in items)
     body.extend(book.render_piece(p, fills, pads, tops) for p in back)
@@ -216,10 +224,17 @@ def build_html(book: Book, issue: str, front: list[Piece], groups: list[tuple[st
 
 # ---------------------------------------------------------------- 页码与拼页
 
-def uncounted_pages(spans: dict[str, tuple[int, int]], staff: bool) -> dict[int, str]:
-    """不印页码、不计页数的页：{PDF 里的第几页（从 1 数）: 页码标签}。人员表是第 1 页，目录随后。"""
-    out = {1: "人员表"} if staff else {}
-    out.update({n: "目录" for n in range(spans["toc"][0], spans["toc"][1] + 1)})
+def front_pages(starts: dict[str, int], spans: dict[str, tuple[int, int]], front: list[Piece],
+                title: bool, pad: bool) -> dict[int, str]:
+    """不印页码、不计页数的页：{第几页（从 1 数）: 页码标签}。Chromium 的输出与成品页序相同：扉页（先占位）、人员表、
+    目录，pad 为 True 时还有目录后的空白页。spans["toc"] 不含这页空白。"""
+    out = {1: "扉页"} if title else {}
+    staff_end = min([starts[p.pid] for p in front] + [spans["toc"][0]]) - 1
+    out.update({n: "人员表" for n in range(len(out) + 1, staff_end + 1)})
+    toc_first, toc_last = spans["toc"]
+    out.update({n: "目录" for n in range(toc_first, toc_last + 1)})
+    if pad:
+        out[toc_last + 1] = "空白页"
     return out
 
 
@@ -228,44 +243,25 @@ def printed_page(n: int, uncounted: dict[int, str]) -> int:
     return n - sum(1 for u in uncounted if u < n)
 
 
-def finalize(issue: str, raw: Path, pdf_path: Path, uncounted: dict[int, str],
-             html_text: str) -> tuple[dict[int, str], list[int]]:
-    """拼上扉页、写入元数据和页码标签，写完再替换 pdf_path。Chromium 排好的版面（raw）不动：扉页（另做的 PDF）插在最前；
-    开头不计页数的页若是奇数张，在其后补一张空白页，让第 1 页仍落在右页（页眉的左右页也就不变）。
-    uncounted 为 Chromium 输出里不计页数的页；返回（最终 PDF 里不计页数的页，插入的页在最终 PDF 里的页序）。"""
+def finalize(issue: str, raw: Path, pdf_path: Path, uncounted: dict[int, str], html_text: str) -> None:
+    """Chromium 排好的版面（raw）与成品页序相同：把第 1 页的占位空白页换成另做的扉页，写入书签、元数据和页码标签，
+    写完再替换 pdf_path。uncounted 为不计页数的页 {第几页: 页码标签}。"""
     cfg = ISSUES[issue]
     with pymupdf.open(raw) as doc:
-        final, inserted = dict(uncounted), []
         if cfg.get("title_page"):
+            doc.delete_page(0)
             with pymupdf.open(ROOT / cfg["title_page"]) as tp:
                 doc.insert_pdf(tp, from_page=0, to_page=0, start_at=0)
-            final = {1: "扉页", **{n + 1: label for n, label in uncounted.items()}}
-            inserted.append(1)
-        front = 0
-        while front + 1 in final:                     # 开头连续的不计页数的页
-            front += 1
-        if front % 2:
-            size = doc[front - 1].rect
-            doc.new_page(pno=front, width=size.width, height=size.height)
-            final = {(n + 1 if n > front else n): label for n, label in final.items()}
-            final[front + 1] = "空白页"
-            inserted.append(front + 1)
-        # 书签：Chromium 按标题生成的书签随页面移动；前面补上扉页、人员表
-        extra = [[1, final[n], n] for n in sorted(final) if final[n] in ("扉页", "人员表")]
-        doc.set_toc(extra + outline_from_html(doc.get_toc(simple=False), html_text))
+        # 书签：Chromium 按标题生成；前面补上扉页、人员表（各指向第一页）
+        first: dict[str, int] = {}
+        for n, label in sorted(uncounted.items()):
+            first.setdefault(label, n)
+        extra = [[1, label, first[label]] for label in ("扉页", "人员表") if label in first]
+        doc.set_toc(extra + drop_toc_children(outline_from_html(doc.get_toc(simple=False), html_text)))
         doc.set_metadata(document_metadata(issue, "内页", doc.metadata.get("producer", "")))
-        set_page_labels(doc, final)
+        set_page_labels(doc, uncounted)
         save_pdf(doc, pdf_path.with_suffix(".tmp.pdf"))
     pdf_path.with_suffix(".tmp.pdf").replace(pdf_path)
-    return final, inserted
-
-
-def final_page(n: int, inserted: list[int]) -> int:
-    """Chromium 输出里的第 n 页在拼好的 PDF 里是第几页。"""
-    for p in sorted(inserted):
-        if p <= n:
-            n += 1
-    return n
 
 
 def main() -> None:
@@ -299,15 +295,20 @@ def build(issue: str) -> None:
     pads: dict[str, dict[int, int]] = {}       # pid → {配图序号: 图上方多空的行数}（anchor: bottom）
     tops: dict[str, int] = {}                  # 起始页：整组内容上方补的空行，让内容上下居中
     base_len: dict[str, int] = {}              # 加文末配图前每篇的页数
+    pad = True                                 # 先按目录占一页算：扉页、人员表、目录共三页，目录后补一页空白
     for rnd in range(1, 9):
-        html_path.write_text(build_html(book, issue, front, groups, back, pages, fills, pads, tops), encoding="utf-8")
+        html_path.write_text(build_html(book, issue, front, groups, back, pages, fills, pads, tops, pad),
+                             encoding="utf-8")
         render_pdf(html_path, raw)
         starts, spans = piece_pages(raw, front, groups, back, html_path.read_text(encoding="utf-8"))
+        if pad:                                # 目录后的空白页没有书签，被算进了目录
+            spans["toc"] = (spans["toc"][0], spans["toc"][1] - 1)
         free = free_lines(raw, spans)
-        changed = starts != phys
-        phys = starts
-        skip = uncounted_pages(spans, bool(cfg.get("staff")))
+        skip = front_pages(starts, spans, front, bool(cfg.get("title_page")), pad)
         pages = {pid: printed_page(n, skip) for pid, n in starts.items()}
+        need = spans["toc"][1] % 2 == 1        # 扉页到目录共奇数页时补空白，正文第 1 页才落在右页
+        changed = starts != phys or need != pad
+        phys, pad = starts, need
         changed |= book.place_fills(pieces, spans, free, fills, pads, base_len, tops)
         print(f"第 {rnd} 遍：{page_count(raw)} 页")
         if not changed:
@@ -317,13 +318,13 @@ def build(issue: str) -> None:
         raise RuntimeError("排了 8 遍版面仍未稳定，目录页码或配图可能与版面不符；请检查 FILLS 配置")
 
     html_text = html_path.read_text(encoding="utf-8")
-    final, inserted = finalize(issue, raw, pdf_path, skip, html_text)
+    finalize(issue, raw, pdf_path, skip, html_text)
     raw.unlink()
     total = page_count(pdf_path)
-    report = []                                # 起止页按拼好扉页、空白页后的 PDF 计
+    report = []
     for pid, (a, b) in spans.items():
         title = "目录" if pid == "toc" else pieces[pid].title
-        report.append({"pid": pid, "title": title, "pages": [final_page(a, inserted), final_page(b, inserted)],
+        report.append({"pid": pid, "title": title, "pages": [a, b],
                        "page_no": None if a in skip else pages.get(pid),   # 不计页数的页没有页码
                        "free_lines": free[pid], "fills": fills.get(pid, {})})
     (OUT_DIR / f"{issue}版面.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
