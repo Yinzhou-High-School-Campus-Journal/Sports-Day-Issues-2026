@@ -47,7 +47,7 @@ python release.py 第一期
 | `第一期/` | `第一期内页.pdf`（发行用，扉页加正文）、`第一期正文.pdf`、`第一期（含封面预览）.pdf`、`第一期.html`、`第一期版面.json`、`images/` |
 | `第二期/` | `第二期内页.pdf`（发行用）、`第二期.html`、`第二期版面.json`、`images/` |
 
-发行文件由 GitHub Actions 的「制作编辑部版」工作流（`.github/workflows/build.yml`）在 Ubuntu 上制作：按锁定的版本安装，跑完回归检查后连做两遍核对逐字节相同，并附构建来源证明，可用 `gh attestation verify <文件> -R Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026` 核对。`版面.json` 记录每篇的起止页、印出的页码、末页留白行数和配图行数，可用来核对目录。
+`版面.json` 记录每篇的起止页、印出的页码、末页留白行数和配图行数，可用来核对目录。
 
 同一提交在同一操作系统上重新制作，PDF 逐字节相同（日期的取法见「文件信息」），可以直接用 `sha256sum` 比对；换了系统，页码和竖排文字会上下差 0.75 pt。Release `2026.10.7` 的编辑部版早于这一点和补字，只能逐页比对。
 
@@ -58,6 +58,16 @@ python -m unittest discover -s tests
 node --test tests/browser.test.cjs
 node tests/check_browser_geometry.cjs
 ```
+
+### 发布
+
+发行文件由 GitHub Actions 的「制作编辑部版」工作流（[`.github/workflows/build.yml`](<../.github/workflows/build.yml>)）在 Ubuntu 24.04 上制作。发新版时：
+
+1. 把仓库文档里指向 Release 的下载链接改成新版本的 tag（用日期，如 `2026.10.10`），提交到 `main`。
+2. 在仓库的 Actions 页选「制作编辑部版」，对 `main` 点 Run workflow。工作流按锁定的版本安装 Python、Node、依赖与 Chromium，跑回归检查，连做两遍核对逐字节相同，再为四个发行文件生成构建来源证明。
+3. 在运行页下载产物 `Sports_Day_Issues_2026_ED`（已按发行名命名的四个 ED 文件和 `SHA256SUMS`），以这次运行所用的提交为 tag 目标新建 Release，上传这四个文件和上一版未变的 `Print` 文件，说明里附上运行链接。
+
+`gh attestation verify <文件> -R Yinzhou-High-School-Campus-Journal/Sports-Day-Issues-2026` 可以核对文件出自哪次运行、哪个提交；也可以在 Linux 上用同一提交重新制作，比对 SHA-256。仓库归档后只读，工作流不能再运行，需要时可以 fork 后照样运行。
 
 ### 流程
 
