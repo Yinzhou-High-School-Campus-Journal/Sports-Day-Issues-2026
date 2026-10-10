@@ -76,7 +76,7 @@ FILLS: dict[str, list[dict]] = {
     "1_校运风采/09_一圈_2403_江钡薏.md": [{"art": "oval_track", "args": {"sun": False}, "alt": "一圈跑道"}],
     "2_少年心语/00_导读.md": [{"photo": "资产/配图/2019校园_仰望树梢_鄞中电视台.jpg", "min": 1, "max": 17,
                           "anchor": "bottom", "alt": "从树下仰望天空（鄞中电视台）"}],
-    "2_少年心语/01_山顶的云海日出_2610_董排彤.md": [
+    "2_少年心语/01_山顶的云海日出_2610_董臙彤.md": [
         {"where": "head", "lines": 20, "art": "cloudsea", "args": {"seed": 3}, "alt": "云海日出"},
         {"art": "ink_ridges", "alt": "云下的山脊，像用墨随意勾了几笔"}],
     # 航拍原片左上角有水印，裁掉

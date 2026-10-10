@@ -26,12 +26,15 @@ INSTANCES = {
     "YZLatin-Italic-350.ttf": ("NotoSerif-Italic-VF.ttf", {"wght": 350, "wdth": 100}, "Noto Serif", "W350 Italic"),
 }
 
-# 方正恒仿宋缺的字：借用别的码位的字形（值为一个字），或用同一字体里的部件拼（值为 (取哪个字, "left"/"right") 的序列，
-# 按轮廓中心落在字身左半或右半取舍，位置不变）。生成补字字体，样式表按 unicode-range 只把这几个字交给它。
+# 方正恒仿宋缺的字：借用别的码位的字形（值为一个字），或用同一字体里的部件拼（值为 (取哪个字, 取哪部分[, 放进的框]) 的序列）。
+# 取哪部分："left"/"right" 按轮廓中心落在字身左半或右半取舍，"all" 取整个字；不给框时位置不变，给了框
+# (x0, x1, y0, y1)（字体单位）就缩放到框里。生成补字字体，样式表按 unicode-range 只把这几个字交给它。
 # 出现新的缺字时排版前的查字会报错，在这里补一条即可。
 FANGSONG_SUPPLEMENT = {
-    "・": "·",                             # 「・」（《鄞年・思叙》）：借用「·」
+    "・": "·",                                       # 《鄞年・思叙》：借用「·」
     "晅": (("暄", "left"), ("恒", "right")),         # 日 + 亘
+    # 月 + 燕：比例参照思源宋体的「臙」，「月」收窄一成多，「燕」压到原宽的七成左右
+    "臙": (("胭", "left", (24, 350, -76, 741)), ("燕", "all", (366, 922, -78, 790))),
 }
 # 补字字体 → (源字体, CSS 字重范围，与样式表里的方正恒仿宋一致)；输出不纳入仓库，指纹记录在 manifest.json
 SUPPLEMENT_FONTS = {
@@ -116,6 +119,7 @@ def make_supplement_font(name: str, dest: Path) -> None:
     from fontTools import subset
     from fontTools.pens.boundsPen import BoundsPen
     from fontTools.pens.recordingPen import RecordingPen
+    from fontTools.pens.transformPen import TransformPen
     from fontTools.pens.ttGlyphPen import TTGlyphPen
     from fontTools.ttLib import TTFont
     src, _ = SUPPLEMENT_FONTS[name]
@@ -129,8 +133,8 @@ def make_supplement_font(name: str, dest: Path) -> None:
             mapping[ord(ch)] = cmap[ord(recipe)]
             continue
         pen = TTGlyphPen(gs)
-        for donor, side in recipe:
-            rec, contour = RecordingPen(), []
+        for donor, part, *box in recipe:
+            rec, contour, chosen = RecordingPen(), [], []
             gs[cmap[ord(donor)]].draw(rec)
             for op, args in rec.value:
                 contour.append((op, args))
@@ -138,10 +142,19 @@ def make_supplement_font(name: str, dest: Path) -> None:
                     bounds = BoundsPen(gs)
                     for o, a in contour:
                         getattr(bounds, o)(*a)
-                    if ((bounds.bounds[0] + bounds.bounds[2]) / 2 < half) == (side == "left"):
-                        for o, a in contour:
-                            getattr(pen, o)(*a)
+                    x0, y0, x1, y1 = bounds.bounds
+                    if part == "all" or ((x0 + x1) / 2 < half) == (part == "left"):
+                        chosen.append((contour, bounds.bounds))
                     contour = []
+            target = pen
+            if box:
+                (x0, x1, y0, y1), (bx0, by0) = box[0], (min(b[0] for _, b in chosen), min(b[1] for _, b in chosen))
+                sx = (x1 - x0) / (max(b[2] for _, b in chosen) - bx0)
+                sy = (y1 - y0) / (max(b[3] for _, b in chosen) - by0)
+                target = TransformPen(pen, (sx, 0, 0, sy, x0 - bx0 * sx, y0 - by0 * sy))
+            for c, _ in chosen:
+                for o, a in c:
+                    getattr(target, o)(*a)
         glyph, first = f"uni{ord(ch):04X}", cmap[ord(recipe[0][0])]
         order.append(glyph)
         glyf.glyphOrder = order
