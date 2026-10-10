@@ -26,15 +26,14 @@ INSTANCES = {
     "YZLatin-Italic-350.ttf": ("NotoSerif-Italic-VF.ttf", {"wght": 350, "wdth": 100}, "Noto Serif", "W350 Italic"),
 }
 
-# 方正恒仿宋缺的字：借用别的码位的字形（值为一个字），或用同一字体里的部件拼（值为 (取哪个字, 取哪部分[, 放进的框]) 的序列）。
-# 取哪部分："left"/"right" 按轮廓中心落在字身左半或右半取舍，"all" 取整个字；不给框时位置不变，给了框
-# (x0, x1, y0, y1)（字体单位）就缩放到框里。生成补字字体，样式表按 unicode-range 只把这几个字交给它。
-# 出现新的缺字时排版前的查字会报错，在这里补一条即可。
+# 方正恒仿宋缺的字。值为一个字：借用它的字形；值为 (甲, 乙)：左右结构，左部件取自甲，右部件取自乙。
+# 拼法：甲、乙的轮廓按中心横坐标排序，在相邻中心相差最大处分开左右部件，部件都留在原位；右部件挤到左部件时，
+# 才以右缘为准横向收窄，收到与甲自身左右部件间的最小间隙相同为止，高度不变。所以乙宜选右部件宽窄相近的
+# 左右结构字，收窄得越少，竖笔越不会变细。出现新的缺字时排版前的查字会报错，在这里补一条即可。
 FANGSONG_SUPPLEMENT = {
-    "・": "·",                                       # 《鄞年・思叙》：借用「·」
-    "晅": (("暄", "left"), ("恒", "right")),         # 日 + 亘
-    # 月 + 燕：比例参照思源宋体的「臙」，「月」收窄一成多，「燕」压到原宽的七成左右
-    "臙": (("胭", "left", (24, 350, -76, 741)), ("燕", "all", (366, 922, -78, 790))),
+    "・": "·",              # 《鄞年・思叙》：借用「·」
+    "晅": ("暄", "恒"),     # 日 + 亘，不用收窄
+    "臙": ("胭", "嬿"),     # 月 + 燕：「嬿」里的「燕」本就比单字窄，只需收到约 0.85
 }
 # 补字字体 → (源字体, CSS 字重范围，与样式表里的方正恒仿宋一致)；输出不纳入仓库，指纹记录在 manifest.json
 SUPPLEMENT_FONTS = {
@@ -117,45 +116,85 @@ def make_static_font(name: str, dest: Path) -> None:
 def make_supplement_font(name: str, dest: Path) -> None:
     """生成方正恒仿宋的补字字体，只含 FANGSONG_SUPPLEMENT 里的字；同一版本的 FontTools 每次生成的文件逐字节相同。"""
     from fontTools import subset
-    from fontTools.pens.boundsPen import BoundsPen
+    from fontTools.pens.basePen import BasePen
     from fontTools.pens.recordingPen import RecordingPen
     from fontTools.pens.transformPen import TransformPen
     from fontTools.pens.ttGlyphPen import TTGlyphPen
     from fontTools.ttLib import TTFont
+
+    class Polyline(BasePen):
+        """轮廓压成折线（二次曲线每段取 8 点），用来量每一行墨迹的左右边缘。"""
+        def __init__(self, glyphs):
+            super().__init__(glyphs)
+            self.points = []
+
+        def _moveTo(self, p):
+            self.points = [p]
+
+        def _lineTo(self, p):
+            self.points.append(p)
+
+        def _qCurveToOne(self, p1, p2):
+            (x0, y0) = self.points[-1]
+            self.points += [((1 - t) ** 2 * x0 + 2 * (1 - t) * t * p1[0] + t * t * p2[0],
+                             (1 - t) ** 2 * y0 + 2 * (1 - t) * t * p1[1] + t * t * p2[1])
+                            for t in (i / 8 for i in range(1, 9))]
+
     src, _ = SUPPLEMENT_FONTS[name]
     font = TTFont(FONTS / src)
     cmap, gs, glyf = font.getBestCmap(), font.getGlyphSet(), font["glyf"]
     order = font.getGlyphOrder()
-    half = font["head"].unitsPerEm / 2
+    rows = range(font["head"].yMin, font["head"].yMax, 5)
+
+    def halves(ch):
+        """一个字的轮廓按中心横坐标排序，在相邻中心相差最大处分成左右两个部件，每个轮廓为 (绘制步骤, 折线)。"""
+        rec, steps, contours = RecordingPen(), [], []
+        gs[cmap[ord(ch)]].draw(rec)
+        for op, args in rec.value:
+            steps.append((op, args))
+            if op in ("closePath", "endPath"):
+                line = Polyline(gs)
+                for o, a in steps:
+                    getattr(line, o)(*a)
+                xs = [x for x, _ in line.points]
+                contours.append(((min(xs) + max(xs)) / 2, steps, line.points))
+                steps = []
+        centers = sorted(c[0] for c in contours)
+        k = max(range(1, len(centers)), key=lambda i: centers[i] - centers[i - 1])
+        split = (centers[k - 1] + centers[k]) / 2
+        return [c[1:] for c in contours if c[0] < split], [c[1:] for c in contours if c[0] > split]
+
+    def edge(part, y, pick):
+        """部件在高度 y 那一行墨迹的最左（pick=min）或最右（pick=max）横坐标；这一行没有墨迹时为 None。"""
+        xs = [x0 + (y - y0) * (x1 - x0) / (y1 - y0)
+              for _, line in part for (x0, y0), (x1, y1) in zip(line, line[1:] + line[:1])
+              if y0 <= y < y1 or y1 <= y < y0]
+        return pick(xs) if xs else None
+
+    def gaps(left, right):
+        """逐行量左部件右缘与右部件左缘：[(左部件右缘, 右部件左缘)]。"""
+        pairs = [(edge(left, y, max), edge(right, y, min)) for y in rows]
+        return [(l, r) for l, r in pairs if l is not None and r is not None]
+
     mapping = {}
     for ch, recipe in FANGSONG_SUPPLEMENT.items():
         if isinstance(recipe, str):
             mapping[ord(ch)] = cmap[ord(recipe)]
             continue
+        left, own_right = halves(recipe[0])
+        right = halves(recipe[1])[1]
+        clearance = min(r - l for l, r in gaps(left, own_right))
+        x_end = max(x for _, line in right for x, _ in line)
+        scale = min([1.0] + [(x_end - l - clearance) / (x_end - r) for l, r in gaps(left, right) if r < x_end])
         pen = TTGlyphPen(gs)
-        for donor, part, *box in recipe:
-            rec, contour, chosen = RecordingPen(), [], []
-            gs[cmap[ord(donor)]].draw(rec)
-            for op, args in rec.value:
-                contour.append((op, args))
-                if op in ("closePath", "endPath"):
-                    bounds = BoundsPen(gs)
-                    for o, a in contour:
-                        getattr(bounds, o)(*a)
-                    x0, y0, x1, y1 = bounds.bounds
-                    if part == "all" or ((x0 + x1) / 2 < half) == (part == "left"):
-                        chosen.append((contour, bounds.bounds))
-                    contour = []
-            target = pen
-            if box:
-                (x0, x1, y0, y1), (bx0, by0) = box[0], (min(b[0] for _, b in chosen), min(b[1] for _, b in chosen))
-                sx = (x1 - x0) / (max(b[2] for _, b in chosen) - bx0)
-                sy = (y1 - y0) / (max(b[3] for _, b in chosen) - by0)
-                target = TransformPen(pen, (sx, 0, 0, sy, x0 - bx0 * sx, y0 - by0 * sy))
-            for c, _ in chosen:
-                for o, a in c:
-                    getattr(target, o)(*a)
-        glyph, first = f"uni{ord(ch):04X}", cmap[ord(recipe[0][0])]
+        for steps, _ in left:
+            for o, a in steps:
+                getattr(pen, o)(*a)
+        narrowed = TransformPen(pen, (scale, 0, 0, 1, x_end * (1 - scale), 0))
+        for steps, _ in right:
+            for o, a in steps:
+                getattr(narrowed, o)(*a)
+        glyph, first = f"uni{ord(ch):04X}", cmap[ord(recipe[0])]
         order.append(glyph)
         glyf.glyphOrder = order
         glyf.glyphs[glyph] = pen.glyph()
