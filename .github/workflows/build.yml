@@ -1,0 +1,67 @@
+# 在 Ubuntu 上按锁定的版本制作两期编辑部版：跑回归检查，连做两遍核对逐字节相同，
+# 把四个发行文件和 SHA256SUMS 作为产物上传，并为发行文件生成构建来源证明。从 Actions 页手动运行。
+name: 制作编辑部版
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write          # 构建来源证明
+  attestations: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: 排版
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version-file: 排版/.python-version
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version-file: 排版/.node-version
+          package-manager-cache: false
+
+      - name: 安装锁定的依赖与浏览器
+        run: |
+          python -m pip install -r requirements.txt
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: 回归检查
+        run: |
+          python -m unittest discover -s tests
+          node --test tests/browser.test.cjs
+
+      - name: 制作两遍，核对逐字节相同
+        run: |
+          collect() {
+            mkdir -p "$1"
+            cp 第一期/第一期内页.pdf "$1/Sports_Day_Issues_2026_No_1_ED.pdf"
+            cp 封面/第一期封面.pdf "$1/Sports_Day_Issues_2026_No_1_Cover_ED.pdf"
+            cp 第二期/第二期内页.pdf "$1/Sports_Day_Issues_2026_No_2_ED.pdf"
+            cp 封面/第二期封面.pdf "$1/Sports_Day_Issues_2026_No_2_Cover_ED.pdf"
+          }
+          python release.py
+          collect "$GITHUB_WORKSPACE/dist"
+          (cd "$GITHUB_WORKSPACE/dist" && sha256sum *.pdf > SHA256SUMS && cat SHA256SUMS)
+          python release.py
+          collect "$RUNNER_TEMP/second"
+          (cd "$RUNNER_TEMP/second" && sha256sum -c "$GITHUB_WORKSPACE/dist/SHA256SUMS")
+          node tests/check_browser_geometry.cjs
+
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8  # v4.2.2
+        with:
+          subject-path: dist/*.pdf
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: Sports_Day_Issues_2026_ED
+          path: dist/
+          if-no-files-found: error
