@@ -408,7 +408,7 @@ else:
 def face(fam, path, extra=''):
     return f"@font-face{{font-family:'{fam}';src:url('{Path(path).resolve().as_uri()}');{extra}}}"
 
-faces = [face('Mast', os.path.join(FONTS, 'FW筑紫E老明朝.TTF')),
+faces = [face('Mast', os.path.join(FONTS, 'FW筑紫A老明朝E.TTF')),
          face('FZHFS', os.path.join(FONTS, 'FZHengFSJF-M.TTF'), 'font-weight:500;'),
          face('Seal', os.path.join(FONTS, '金陵刻经W.ttf'))]
 for w in (600, 700, 900):

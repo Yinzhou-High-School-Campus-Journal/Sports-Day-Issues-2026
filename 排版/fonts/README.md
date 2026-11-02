@@ -10,6 +10,7 @@
 | `FZHengFSJF-*.TTF` | 方正恒仿宋：作者署名、导读、人员表 |
 | `YZFangSong-Supplement-*.ttf` | 方正恒仿宋缺的字，由同一字体的部件拼成，构建时自动生成，不提交 |
 | `封面/CoverSong-*.ttf`、`封面/CoverLatin-*.ttf` | 封面用的思源宋体与 Noto Serif 字形子集 |
-| `FW筑紫E老明朝.TTF`、`金陵刻经W.ttf` | 封面期名与印章 |
+| `FW筑紫A老明朝E.TTF` | 方正FW筑紫A老明朝 简 E：封面期名 |
+| `金陵刻经W.ttf` | 汉仪金陵刻经 W：封面印章 |
 
 Noto Serif SC、Noto Serif 与思源宋体采用 SIL Open Font License 1.1，许可文本分别见 [OFL-NotoSerifSC.txt](OFL-NotoSerifSC.txt)、[OFL-NotoSerif.txt](OFL-NotoSerif.txt) 和 [OFL-SourceHanSerif.txt](OFL-SourceHanSerif.txt)。
